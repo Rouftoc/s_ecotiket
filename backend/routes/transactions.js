@@ -1,0 +1,267 @@
+const express = require('express');
+const { pool } = require('../config/database');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const router = express.Router();
+
+router.get('/bottle-rates', async (req, res) => {
+  try {
+    const [rates] = await pool.execute(
+      'SELECT * FROM bottle_rates WHERE is_active = true ORDER BY bottle_type'
+    );
+
+    res.json({ rates });
+  } catch (error) {
+    console.error('Get bottle rates error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), async (req, res) => {
+  try {
+    const { userQrCode, bottleType, bottleCount } = req.body;
+    const petugasId = req.user.id;
+
+    if (!userQrCode || !bottleType || !bottleCount) {
+      return res.status(400).json({ error: 'User QR code, bottle type, and bottle count are required' });
+    }
+
+    const [users] = await pool.execute(
+      'SELECT id, name, tickets_balance, points FROM users WHERE qr_code = ? AND status = "active"',
+      [userQrCode]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found or inactive' });
+    }
+
+    const user = users[0];
+
+    const [rates] = await pool.execute(
+      'SELECT * FROM bottle_rates WHERE bottle_type = ? AND is_active = true',
+      [bottleType]
+    );
+
+    if (rates.length === 0) {
+      return res.status(404).json({ error: 'Bottle exchange rate not found' });
+    }
+
+    const rate = rates[0];
+
+    const ticketsEarned = Math.floor(bottleCount / rate.bottles_required);
+    const pointsEarned = ticketsEarned * rate.points_earned;
+
+    if (ticketsEarned === 0) {
+      return res.status(400).json({ 
+        error: `Minimum ${rate.bottles_required} bottles required for 1 ticket` 
+      });
+    }
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      await connection.execute(
+        'UPDATE users SET tickets_balance = tickets_balance + ?, points = points + ? WHERE id = ?',
+        [ticketsEarned, pointsEarned, user.id]
+      );
+
+      const [transactionResult] = await connection.execute(
+        'INSERT INTO transactions (user_id, petugas_id, type, description, bottles_count, bottle_type, tickets_change, points_earned, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          user.id,
+          petugasId,
+          'bottle_exchange',
+          `Tukar ${bottleCount} botol ${bottleType}`,
+          bottleCount,
+          bottleType,
+          ticketsEarned,
+          pointsEarned,
+          req.user.address || 'Unknown Location'
+        ]
+      );
+
+      await connection.commit();
+
+      const [updatedUsers] = await pool.execute(
+        'SELECT id, name, tickets_balance, points FROM users WHERE id = ?',
+        [user.id]
+      );
+
+      res.json({
+        message: 'Bottle exchange successful',
+        transaction: {
+          id: transactionResult.insertId,
+          ticketsEarned,
+          pointsEarned,
+          bottleCount,
+          bottleType
+        },
+        user: updatedUsers[0]
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Bottle exchange error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/ticket-usage', authenticateToken, requireRole(['petugas']), async (req, res) => {
+  try {
+    const { userQrCode, ticketCount, location } = req.body;
+    const petugasId = req.user.id;
+
+    if (!userQrCode || !ticketCount) {
+      return res.status(400).json({ error: 'User QR code and ticket count are required' });
+    }
+
+    const [users] = await pool.execute(
+      'SELECT id, name, tickets_balance, points FROM users WHERE qr_code = ? AND status = "active"',
+      [userQrCode]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found or inactive' });
+    }
+
+    const user = users[0];
+
+    if (user.tickets_balance < ticketCount) {
+      return res.status(400).json({ error: 'Insufficient ticket balance' });
+    }
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      await connection.execute(
+        'UPDATE users SET tickets_balance = tickets_balance - ? WHERE id = ?',
+        [ticketCount, user.id]
+      );
+
+      const [transactionResult] = await connection.execute(
+        'INSERT INTO transactions (user_id, petugas_id, type, description, tickets_change, location) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          user.id,
+          petugasId,
+          'ticket_usage',
+          `Menggunakan ${ticketCount} tiket untuk transportasi`,
+          -ticketCount,
+          location || 'Unknown Location'
+        ]
+      );
+
+      await connection.commit();
+
+      const [updatedUsers] = await pool.execute(
+        'SELECT id, name, tickets_balance, points FROM users WHERE id = ?',
+        [user.id]
+      );
+
+      res.json({
+        message: 'Ticket usage successful',
+        transaction: {
+          id: transactionResult.insertId,
+          ticketsUsed: ticketCount,
+          location
+        },
+        user: updatedUsers[0]
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Ticket usage error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (req.user.role !== 'admin' && req.user.id != userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const [userResult] = await pool.execute(
+      'SELECT role FROM users WHERE id = ?', 
+      [userId]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const userRole = userResult[0].role;
+
+    let filterColumn = 't.user_id';
+    if (userRole === 'petugas') {
+      filterColumn = 't.petugas_id';
+    }
+
+    const query = `
+      SELECT t.*, u.name as user_name, p.name as petugas_name 
+      FROM transactions t 
+      LEFT JOIN users u ON t.user_id = u.id 
+      LEFT JOIN users p ON t.petugas_id = p.id 
+      WHERE ${filterColumn} = ? 
+      ORDER BY t.created_at DESC
+      LIMIT 100
+    `;
+    
+    const [transactions] = await pool.execute(query, [userId]);
+
+    res.json({ transactions });
+  } catch (error) {
+    console.error('Get user transactions error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/', authenticateToken, requireRole(['admin', 'petugas']), async (req, res) => {
+  try {
+    const { type, startDate, endDate, limit = 100 } = req.query;
+    
+    let query = 'SELECT t.*, u.name as user_name, p.name as petugas_name ' +
+                'FROM transactions t ' +
+                'JOIN users u ON t.user_id = u.id ' +
+                'JOIN users p ON t.petugas_id = p.id ' +
+                'WHERE 1=1';
+
+    const params = [];
+
+    if (type) {
+      query += ' AND t.type = ?';
+      params.push(type);
+    }
+
+    if (startDate) {
+      query += ' AND DATE(t.created_at) >= ?';
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      query += ' AND DATE(t.created_at) <= ?';
+      params.push(endDate);
+    }
+
+    const limitNum = parseInt(limit, 10);
+    query += ` ORDER BY t.created_at DESC LIMIT ${limitNum}`;
+
+    const [transactions] = await pool.execute(query, params);
+
+    res.json({ transactions });
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;
