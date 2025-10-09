@@ -371,16 +371,19 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
     let ticketsEarned = 0;
     switch (bottleType.toLowerCase()) {
       case 'jumbo':
-        ticketsEarned = Math.floor(bottleCount / 3);
+        ticketsEarned = Math.floor(bottleCount / 1);
         break;
-      case 'sedang':
+      case 'besar':
         ticketsEarned = Math.floor(bottleCount / 5);
         break;
+      case 'sedang':
+        ticketsEarned = Math.floor(bottleCount / 8);
+        break;
       case 'kecil':
-        ticketsEarned = Math.floor(bottleCount / 10);
+        ticketsEarned = Math.floor(bottleCount / 15);
         break;
       case 'cup':
-        ticketsEarned = Math.floor(bottleCount / 15);
+        ticketsEarned = Math.floor(bottleCount / 20);
         break;
       default:
         ticketsEarned = Math.floor(bottleCount / 5); 

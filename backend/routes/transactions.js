@@ -17,7 +17,10 @@ router.get('/bottle-rates', async (req, res) => {
 });
 
 router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), async (req, res) => {
+  const connection = await pool.getConnection();
   try {
+    await connection.beginTransaction();
+
     const { userQrCode, bottleType, bottleCount } = req.body;
     const petugasId = req.user.id;
 
@@ -25,88 +28,68 @@ router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), asy
       return res.status(400).json({ error: 'User QR code, bottle type, and bottle count are required' });
     }
 
-    const [users] = await pool.execute(
-      'SELECT id, name, tickets_balance, points FROM users WHERE qr_code = ? AND status = "active"',
+    const [users] = await connection.execute(
+      'SELECT id, tickets_balance FROM users WHERE qr_code = ? AND status = "active" FOR UPDATE',
       [userQrCode]
     );
 
     if (users.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'User not found or inactive' });
     }
-
     const user = users[0];
+    const oldTicketBalance = user.tickets_balance; 
 
-    const [rates] = await pool.execute(
-      'SELECT * FROM bottle_rates WHERE bottle_type = ? AND is_active = true',
+    const [rates] = await connection.execute(
+      'SELECT bottles_required FROM bottle_rates WHERE bottle_type = ? AND is_active = true',
       [bottleType]
     );
 
     if (rates.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'Bottle exchange rate not found' });
     }
-
     const rate = rates[0];
 
     const ticketsEarned = Math.floor(bottleCount / rate.bottles_required);
-    const pointsEarned = ticketsEarned * rate.points_earned;
 
     if (ticketsEarned === 0) {
-      return res.status(400).json({ 
-        error: `Minimum ${rate.bottles_required} bottles required for 1 ticket` 
-      });
-    }
-
-    const connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    try {
-      await connection.execute(
-        'UPDATE users SET tickets_balance = tickets_balance + ?, points = points + ? WHERE id = ?',
-        [ticketsEarned, pointsEarned, user.id]
-      );
-
-      const [transactionResult] = await connection.execute(
-        'INSERT INTO transactions (user_id, petugas_id, type, description, bottles_count, bottle_type, tickets_change, points_earned, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          user.id,
-          petugasId,
-          'bottle_exchange',
-          `Tukar ${bottleCount} botol ${bottleType}`,
-          bottleCount,
-          bottleType,
-          ticketsEarned,
-          pointsEarned,
-          req.user.address || 'Unknown Location'
-        ]
-      );
-
-      await connection.commit();
-
-      const [updatedUsers] = await pool.execute(
-        'SELECT id, name, tickets_balance, points FROM users WHERE id = ?',
-        [user.id]
-      );
-
-      res.json({
-        message: 'Bottle exchange successful',
-        transaction: {
-          id: transactionResult.insertId,
-          ticketsEarned,
-          pointsEarned,
-          bottleCount,
-          bottleType
-        },
-        user: updatedUsers[0]
-      });
-    } catch (error) {
       await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
+      return res.status(400).json({ error: `Minimum ${rate.bottles_required} botol '${bottleType}' diperlukan untuk 1 tiket` });
     }
+
+    const newTicketBalance = oldTicketBalance + ticketsEarned; 
+
+    const pointsToAdd = Math.floor(newTicketBalance / 10) - Math.floor(oldTicketBalance / 10);
+
+    await connection.execute(
+      'UPDATE users SET tickets_balance = ?, points = points + ? WHERE id = ?',
+      [newTicketBalance, pointsToAdd, user.id]
+    );
+
+    await connection.execute(
+      'INSERT INTO transactions (user_id, petugas_id, type, description, bottles_count, bottle_type, tickets_change, points_earned, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [user.id, petugasId, 'bottle_exchange', `Tukar ${bottleCount} botol ${bottleType}`, bottleCount, bottleType, ticketsEarned, pointsToAdd, 'completed']
+    );
+
+    await connection.commit();
+
+    const [finalUser] = await connection.execute(
+      'SELECT id, name, tickets_balance, points FROM users WHERE id = ?',
+      [user.id]
+    );
+
+    res.json({
+      message: 'Bottle exchange successful',
+      user: finalUser[0]
+    });
+
   } catch (error) {
+    await connection.rollback();
     console.error('Bottle exchange error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -192,7 +175,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 
     const [userResult] = await pool.execute(
-      'SELECT role FROM users WHERE id = ?', 
+      'SELECT role FROM users WHERE id = ?',
       [userId]
     );
 
@@ -215,7 +198,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
       ORDER BY t.created_at DESC
       LIMIT 100
     `;
-    
+
     const [transactions] = await pool.execute(query, [userId]);
 
     res.json({ transactions });
@@ -228,12 +211,12 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, requireRole(['admin', 'petugas']), async (req, res) => {
   try {
     const { type, startDate, endDate, limit = 100 } = req.query;
-    
+
     let query = 'SELECT t.*, u.name as user_name, p.name as petugas_name ' +
-                'FROM transactions t ' +
-                'JOIN users u ON t.user_id = u.id ' +
-                'JOIN users p ON t.petugas_id = p.id ' +
-                'WHERE 1=1';
+      'FROM transactions t ' +
+      'JOIN users u ON t.user_id = u.id ' +
+      'JOIN users p ON t.petugas_id = p.id ' +
+      'WHERE 1=1';
 
     const params = [];
 
