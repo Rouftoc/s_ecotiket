@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react'; 
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileText, Filter, BarChart2, Award, Recycle, User, ChevronLeft, ChevronRight } from 'lucide-react'; // Tambahkan icon panah
+import { Download, FileText, Filter, BarChart2, Award, Recycle, User, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -45,25 +45,30 @@ interface ReportGeneratorProps {
   transactions: Transaction[];
 }
 
-type ReportType = 'user_list' | 'bottle_transactions' | 'user_ranking' | 'daily_summary';
+type ReportType = 'user_list' | 'bottle_transactions' | 'ticket_transactions' | 'officer_activity' | 'user_ranking' | 'daily_summary';
 type UserRankingType = 'points' | 'bottles';
 
 export default function ReportGenerator({ users, transactions }: ReportGeneratorProps) {
   const [reportType, setReportType] = useState<ReportType>('user_list');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [officerFilter, setOfficerFilter] = useState('all');
   const [userRankingType, setUserRankingType] = useState<UserRankingType>('points');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [loading, setLoading] = useState(false);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
 
   const userMap = useMemo(() => new Map(users.map(user => [user.id, user])), [users]);
+
+  const officers = useMemo(() =>
+    users.filter(u => u.role === 'petugas')
+    , [users]);
 
   const processedData = useMemo(() => {
     let data: any[] = [];
     const startDate = dateRange.start ? new Date(dateRange.start) : null;
     const endDate = dateRange.end ? new Date(dateRange.end) : null;
-    if (endDate) endDate.setHours(23, 59, 59, 999); 
+    if (endDate) endDate.setHours(23, 59, 59, 999);
 
     const isInDateRange = (dateStr: string) => {
       if (!startDate || !endDate) return true;
@@ -72,69 +77,93 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
     };
 
     switch (reportType) {
-        case 'user_list':
-          data = users.filter(user => 
-            (userRoleFilter === 'all' || user.role === userRoleFilter) && 
-            isInDateRange(user.created_at)
-          );
-          break;
-  
-        case 'bottle_transactions':
-          data = transactions
-            .filter(tx => tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at))
-            .map(tx => ({
-              ...tx,
-              userName: userMap.get(tx.user_id)?.name || 'N/A',
-              petugasName: userMap.get(tx.petugas_id)?.name || 'N/A',
-            }));
-          break;
-          
-        case 'user_ranking':
-          const userStats = new Map<number, { name: string; nik: string; points: number; bottles: number }>();
-          users.forEach(u => {
-            userStats.set(u.id, { name: u.name, nik: u.nik || '-', points: u.points, bottles: 0 });
-          });
-  
-          transactions.forEach(tx => {
-            if (tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at)) {
-              const stat = userStats.get(tx.user_id);
-              if (stat) {
-                stat.bottles += tx.bottles_count || 0;
-              }
+      case 'user_list':
+        data = users.filter(user =>
+          (userRoleFilter === 'all' || user.role === userRoleFilter) &&
+          isInDateRange(user.created_at)
+        );
+        break;
+
+      case 'bottle_transactions':
+        data = transactions
+          .filter(tx => tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at))
+          .map(tx => ({
+            ...tx,
+            userName: userMap.get(tx.user_id)?.name || 'N/A',
+            petugasName: userMap.get(tx.petugas_id)?.name || 'N/A',
+          }));
+        break;
+
+      case 'ticket_transactions':
+        data = transactions
+          .filter(tx => tx.type === 'ticket_usage' && tx.status === 'completed' && isInDateRange(tx.created_at))
+          .map(tx => ({
+            ...tx,
+            userName: userMap.get(tx.user_id)?.name || 'N/A',
+            petugasName: userMap.get(tx.petugas_id)?.name || 'N/A',
+          }));
+        break;
+
+      case 'officer_activity':
+        data = transactions
+          .filter(tx =>
+            tx.status === 'completed' &&
+            isInDateRange(tx.created_at) &&
+            (officerFilter === 'all' || tx.petugas_id === Number(officerFilter))
+          )
+          .map(tx => ({
+            ...tx,
+            userName: userMap.get(tx.user_id)?.name || 'N/A',
+            petugasName: userMap.get(tx.petugas_id)?.name || 'N/A',
+          }));
+        break;
+
+      case 'user_ranking':
+        const userStats = new Map<number, { name: string; nik: string; points: number; bottles: number }>();
+        users.forEach(u => {
+          userStats.set(u.id, { name: u.name, nik: u.nik || '-', points: u.points, bottles: 0 });
+        });
+
+        transactions.forEach(tx => {
+          if (tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at)) {
+            const stat = userStats.get(tx.user_id);
+            if (stat) {
+              stat.bottles += tx.bottles_count || 0;
             }
+          }
+        });
+
+        data = Array.from(userStats.values())
+          .sort((a, b) => (userRankingType === 'points' ? b.points - a.points : b.bottles - a.bottles))
+          .slice(0, 5)
+          .map((stat, index) => ({ rank: index + 1, ...stat }));
+        break;
+
+      case 'daily_summary':
+        const dailyTotals: { [key: string]: { date: string; jumbo: number; besar: number; sedang: number; kecil: number; cup: number; total: number } } = {};
+        transactions
+          .filter(tx => tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at))
+          .forEach(tx => {
+            const date = new Date(tx.created_at).toISOString().split('T')[0];
+            if (!dailyTotals[date]) {
+              dailyTotals[date] = { date, jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0, total: 0 };
+            }
+
+            const count = tx.bottles_count || 0;
+            const type = tx.bottle_type?.toLowerCase();
+
+            if (type === 'jumbo' || type === 'besar' || type === 'sedang' || type === 'kecil' || type === 'cup') {
+              dailyTotals[date][type] += count;
+            }
+
+            dailyTotals[date].total += count;
           });
-          
-          data = Array.from(userStats.values())
-            .sort((a, b) => (userRankingType === 'points' ? b.points - a.points : b.bottles - a.bottles))
-            .slice(0, 5) 
-            .map((stat, index) => ({ rank: index + 1, ...stat }));
-          break;
-  
-        case 'daily_summary':
-          const dailyTotals: { [key: string]: { date: string; jumbo: number; besar: number; sedang: number; kecil: number; cup: number; total: number } } = {};
-          transactions
-            .filter(tx => tx.type === 'bottle_exchange' && tx.status === 'completed' && isInDateRange(tx.created_at))
-            .forEach(tx => {
-              const date = new Date(tx.created_at).toISOString().split('T')[0];
-              if (!dailyTotals[date]) {
-                dailyTotals[date] = { date, jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0, total: 0 };
-              }
-              
-              const count = tx.bottles_count || 0;
-              const type = tx.bottle_type?.toLowerCase();
-  
-              if (type === 'jumbo' ||  type === 'besar' || type === 'sedang' || type === 'kecil' || type === 'cup') {
-                dailyTotals[date][type] += count;
-              }
-              
-              dailyTotals[date].total += count;
-            });
-          data = Object.values(dailyTotals).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          break;
+        data = Object.values(dailyTotals).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        break;
     }
     return data;
-  }, [reportType, users, transactions, dateRange, userRoleFilter, userRankingType, userMap]);
-  
+  }, [reportType, users, transactions, dateRange, userRoleFilter, userRankingType, officerFilter, userMap]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [processedData]);
@@ -149,9 +178,36 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
         };
       case 'bottle_transactions':
         return {
-          headers: [['ID Transaksi', 'Tanggal', 'Nama Penumpang', 'Nama Petugas', 'Tipe Botol', 'Jumlah', 'Poin Didapat']],
-          data: processedData.map((tx: any) => [tx.id, new Date(tx.created_at).toLocaleString('id-ID'), tx.userName, tx.petugasName, tx.bottle_type, tx.bottles_count, tx.points_earned]),
+          headers: [['ID Transaksi', 'Tanggal', 'Nama Penumpang', 'Nama Petugas', 'Lokasi', 'Tipe Botol', 'Jumlah', 'Poin Didapat']],
+          data: processedData.map((tx: any) => [tx.id, new Date(tx.created_at).toLocaleString('id-ID'), tx.userName, tx.petugasName, tx.location, tx.bottle_type, tx.bottles_count, tx.points_earned]),
           filename: 'laporan_transaksi_botol'
+        };
+      case 'ticket_transactions':
+        return {
+          headers: [['ID Transaksi', 'Tanggal', 'Nama Penumpang', 'Nama Petugas', 'Lokasi', 'Tiket Digunakan']],
+          data: processedData.map((tx: any) => [
+            tx.id,
+            new Date(tx.created_at).toLocaleString('id-ID'),
+            tx.userName,
+            tx.petugasName,
+            tx.location,
+            Math.abs(tx.tickets_change) 
+          ]),
+          filename: 'laporan_transaksi_tiket'
+        };
+      case 'officer_activity':
+        return {
+          headers: [['ID', 'Tanggal', 'Nama Petugas', 'Aktivitas', 'Detail', 'Lokasi', 'Penumpang']],
+          data: processedData.map((tx: any) => [
+            tx.id,
+            new Date(tx.created_at).toLocaleString('id-ID'),
+            tx.petugasName,
+            tx.type === 'bottle_exchange' ? 'Tukar Botol' : 'Validasi Tiket',
+            tx.type === 'bottle_exchange' ? `${tx.bottles_count || 0} ${tx.bottle_type || ''}` : `${Math.abs(tx.tickets_change)} tiket`,
+            tx.location,
+            tx.userName
+          ]),
+          filename: 'laporan_aktivitas_petugas'
         };
       case 'user_ranking':
         return {
@@ -210,13 +266,11 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
   };
 
   const renderPreviewTable = () => {
-    // --- AWAL MODIFIKASI PAGINASI ---
     const itemsPerPage = 10;
     const totalPages = Math.ceil(processedData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedItems = processedData.slice(startIndex, endIndex);
-    // --- AKHIR MODIFIKASI PAGINASI ---
 
     if (processedData.length === 0) {
       return (
@@ -229,8 +283,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
 
     const config = getExportConfig();
     const headers = config.headers[0];
-    
-    // Ambil data yang sesuai untuk halaman ini untuk dirender
+
     const paginatedRenderData = config.data.slice(startIndex, endIndex);
 
     return (
@@ -302,21 +355,40 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
                 <SelectContent>
                   <SelectItem value="user_list">Laporan Daftar Pengguna</SelectItem>
                   <SelectItem value="bottle_transactions">Laporan Transaksi Botol</SelectItem>
+                  <SelectItem value="ticket_transactions">Laporan Transaksi Tiket</SelectItem>
+                  <SelectItem value="officer_activity">Laporan Aktivitas Petugas</SelectItem>
                   <SelectItem value="user_ranking">Laporan Peringkat Pengguna</SelectItem>
                   <SelectItem value="daily_summary">Ringkasan Botol Harian</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Tanggal Mulai</Label>
               <Input type="date" value={dateRange.start} onChange={(e) => setDateRange(p => ({ ...p, start: e.target.value }))} />
             </div>
-            
+
             <div className="space-y-2">
               <Label>Tanggal Akhir</Label>
               <Input type="date" value={dateRange.end} onChange={(e) => setDateRange(p => ({ ...p, end: e.target.value }))} />
             </div>
+
+            {reportType === 'officer_activity' && (
+              <div className="space-y-2">
+                <Label>Filter Petugas</Label>
+                <Select value={officerFilter} onValueChange={setOfficerFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Petugas</SelectItem>
+                    {officers.map(officer => (
+                      <SelectItem key={officer.id} value={String(officer.id)}>
+                        {officer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {reportType === 'user_list' && (
               <div className="space-y-2">

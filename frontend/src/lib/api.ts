@@ -224,19 +224,18 @@ export const usersAPI = {
       if (filters?.status) params.append('status', filters.status);
       if (filters?.search) params.append('search', filters.search);
 
-      console.log('🔄 Fetching users with filters:', filters);
+      console.log('Fetching users with filters:', filters);
       
       const response = await fetch(`${API_BASE_URL}/users?${params}`, {
         headers: createHeaders()
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Users fetched:', result);
+      console.log('Users fetched:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error in getAllUsers:', error);
-      // Return empty users array as fallback
+      console.error('Error in getAllUsers:', error);
       return {
         success: false,
         users: [],
@@ -298,7 +297,7 @@ export const usersAPI = {
     points?: number;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔄 Updating user:', id, userData);
+      console.log('Updating user:', id, userData);
       
       const backendData = {
         name: userData.name,
@@ -307,7 +306,6 @@ export const usersAPI = {
         phone: userData.phone,
         address: userData.address,
         status: userData.status,
-        // Use both field names to ensure compatibility
         tickets_balance: userData.tickets_balance,
         ticketsBalance: userData.tickets_balance,
         points: userData.points
@@ -320,18 +318,18 @@ export const usersAPI = {
       });
       
       const result = await handleResponse(response);
-      console.log('✅ User updated:', result);
+      console.log('User updated:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error updating user:', error);
+      console.error('Error updating user:', error);
       throw error;
     }
   },
 
   async deleteUser(id: number): Promise<ApiResponse> {
     try {
-      console.log('🔄 Deleting user:', id);
+      console.log('Deleting user:', id);
       
       const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
@@ -339,11 +337,11 @@ export const usersAPI = {
       });
       
       const result = await handleResponse(response);
-      console.log('✅ User deleted:', result);
+      console.log('User deleted:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error deleting user:', error);
+      console.error('Error deleting user:', error);
       throw error;
     }
   }
@@ -369,7 +367,7 @@ export const transactionsAPI = {
     location?: string;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔄 Processing bottle exchange:', data);
+      console.log('Processing bottle exchange:', data);
       
       const response = await fetch(`${API_BASE_URL}/transactions/bottle-exchange`, {
         method: 'POST',
@@ -378,16 +376,16 @@ export const transactionsAPI = {
           userQrCode: data.userQrCode,
           bottleType: data.bottleType,
           bottleCount: data.bottleCount,
-          location: data.location || 'Unknown Location'
+          location: data.location
         })
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Bottle exchange result:', result);
+      console.log('Bottle exchange result:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error in processBottleExchange:', error);
+      console.error('Error in processBottleExchange:', error);
       throw error;
     }
   },
@@ -401,7 +399,7 @@ export const transactionsAPI = {
     location?: string;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔄 Processing bulk bottle exchange:', data);
+      console.log('Processing bulk bottle exchange:', data);
       
       const response = await fetch(`${API_BASE_URL}/transactions/bulk-bottle-exchange`, {
         method: 'POST',
@@ -409,20 +407,19 @@ export const transactionsAPI = {
         body: JSON.stringify({
           userQrCode: data.userQrCode,
           bottles: data.bottles,
-          location: data.location || 'Unknown Location'
+          location: data.location 
         })
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Bulk bottle exchange result:', result);
+      console.log('Bulk bottle exchange result:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error in processBulkBottleExchange:', error);
+      console.error('Error in processBulkBottleExchange:', error);
       
-      // Fallback to individual processing if bulk endpoint doesn't exist
       if (error instanceof Error && error.message.includes('404')) {
-        console.log('⚠️ Bulk endpoint not available, falling back to individual processing');
+        console.log('Bulk endpoint not available, falling back to individual processing');
         
         let totalTickets = 0;
         let totalPoints = 0;
@@ -459,7 +456,7 @@ export const transactionsAPI = {
     location?: string;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔄 Processing ticket usage:', data);
+      console.log('Processing ticket usage:', data);
       
       const response = await fetch(`${API_BASE_URL}/transactions/ticket-usage`, {
         method: 'POST',
@@ -467,34 +464,34 @@ export const transactionsAPI = {
         body: JSON.stringify({
           userQrCode: data.userQrCode,
           ticketCount: data.ticketCount,
-          location: data.location || 'Unknown Location'
+          location: data.location
         })
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Ticket usage result:', result);
+      console.log('Ticket usage result:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error in processTicketUsage:', error);
+      console.error('Error in processTicketUsage:', error);
       throw error;
     }
   },
 
   async getTransactionsByUserId(userId: number): Promise<ApiResponse> {
     try {
-      console.log('🔄 Fetching transactions for user:', userId);
+      console.log('Fetching transactions for user:', userId);
       
       const response = await fetch(`${API_BASE_URL}/transactions/user/${userId}`, {
         headers: createHeaders()
       });
       
       const result = await handleResponse(response);
-      console.log('✅ User transactions fetched:', result);
+      console.log('User transactions fetched:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error fetching user transactions:', error);
+      console.error('Error fetching user transactions:', error);
       return {
         success: false,
         transactions: [],
@@ -514,7 +511,7 @@ export const transactionsAPI = {
     limit?: number;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔄 Fetching transactions with filters:', filters);
+      console.log('Fetching transactions with filters:', filters);
       
       const params = new URLSearchParams();
       if (filters?.type) params.append('type', filters.type);
@@ -527,11 +524,11 @@ export const transactionsAPI = {
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Transactions fetched:', result);
+      console.log('Transactions fetched:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error fetching transactions:', error);
+      console.error('Error fetching transactions:', error);
       return {
         success: false,
         transactions: [],
@@ -607,18 +604,18 @@ export const locationsAPI = {
       if (filters?.status) params.append('status', filters.status);
       if (filters?.search) params.append('search', filters.search);
 
-      console.log('🔄 Fetching locations from:', `${API_BASE_URL}/locations?${params}`);
+      console.log('Fetching locations from:', `${API_BASE_URL}/locations?${params}`);
       
       const response = await fetch(`${API_BASE_URL}/locations?${params}`, {
         headers: createHeaders()
       });
       
       const result = await handleResponse(response);
-      console.log('✅ Locations fetched:', result);
+      console.log('Locations fetched:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Error fetching locations:', error);
+      console.error('Error fetching locations:', error);
       return {
         success: false,
         locations: [],
@@ -750,20 +747,20 @@ export const retryRequest = async <T>(
 };
 
 export const debugAPI = async (): Promise<void> => {
-  console.log('🔍 Debugging API connectivity...');
+  console.log('Debugging API connectivity...');
   
   try {
     const healthCheck = await checkBackendHealth();
-    console.log('📡 Backend health:', healthCheck ? '✅ Online' : '❌ Offline');
+    console.log('Backend health:', healthCheck ? 'Online' : 'Offline');
     
     const token = getAuthToken();
-    console.log('🔑 Auth token:', token ? '✅ Present' : '❌ Missing');
+    console.log('Auth token:', token ? 'Present' : 'Missing');
     
     if (token) {
       const profileResponse = await authAPI.getProfile();
-      console.log('👤 Profile check:', profileResponse.user ? '✅ Valid' : '❌ Invalid');
+      console.log('Profile check:', profileResponse.user ? 'Valid' : 'Invalid');
     }
   } catch (error) {
-    console.error('🚨 API Debug Error:', error);
+    console.error('API Debug Error:', error);
   }
 };

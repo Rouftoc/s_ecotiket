@@ -1,26 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import logoEcoTiket from '@/assets/logo_ecotiket.png';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  QrCode, 
-  Recycle, 
-  Bus, 
-  MapPin, 
-  Scan,
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  QrCode,
+  Recycle,
+  Bus,
+  MapPin,
   LogOut,
   CheckCircle,
   AlertCircle,
-  History
+  History,
+  UserPlus,  
+  Loader2,   
+  CreditCard,
+  Menu,
+  X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
-import { transactionsAPI, usersAPI } from '@/lib/api';
+import QRGenerator from '@/components/QRGenerator'; 
+import { transactionsAPI, usersAPI, authAPI } from '@/lib/api'; 
 
 interface User {
   email: string;
@@ -58,12 +65,28 @@ interface Transaction {
   location: string;
 }
 
+interface RegisteredUser {
+  id: number;
+  email?: string;
+  nik?: string;
+  name: string;
+  role: string;
+  phone?: string;
+  address?: string;
+  qrCode: string; 
+  ticketsBalance: number;
+  points: number;
+  status: string;
+}
+
 export default function PetugasDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [activeMode, setActiveMode] = useState<'stand' | 'karnet' | null>(null);
   const [selectedLocation, setSelectedLocation] = useState('');
   const [currentQR, setCurrentQR] = useState('');
   const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
+  const [activeTab, setActiveTab] = useState('transaction');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bottleCount, setBottleCount] = useState({
     jumbo: 0,
     besar: 0,
@@ -111,7 +134,7 @@ export default function PetugasDashboard() {
         startDate: today,
         endDate: today
       });
-      
+
       if (response.transactions) {
         const localTransactions: Transaction[] = response.transactions.map((t) => ({
           id: t.id,
@@ -128,7 +151,7 @@ export default function PetugasDashboard() {
           timestamp: new Date(t.created_at).toLocaleString('id-ID'),
           location: t.location || ''
         }));
-        
+
         setTodayTransactions(localTransactions);
       }
     } catch (error) {
@@ -145,14 +168,24 @@ export default function PetugasDashboard() {
   const locations = [
     { id: 'terminal-antasari', name: 'Terminal Antasari', type: 'terminal' },
     { id: 'terminal-km0', name: 'Terminal KM 0', type: 'terminal' },
-    { id: 'koridor-1', name: 'Koridor 1', type: 'koridor' },
-    { id: 'koridor-2', name: 'Koridor 2', type: 'koridor' },
-    { id: 'koridor-3', name: 'Koridor 3', type: 'koridor' }
+    { id: 'koridor-1', name: 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', type: 'koridor' },
+    { id: 'koridor-2', name: 'Koridor 2 (Terminal Antasari - RS Ansari Saleh)', type: 'koridor' },
+    { id: 'koridor-3', name: 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', type: 'koridor' },
+    { id: 'koridor-4', name: 'Koridor 4 (Sungai Andai - Teluk Tiram)', type: 'koridor' },
+    { id: 'koridor-5', name: 'Koridor 5 (Terminal Antasari - Pemangkih Laut)', type: 'koridor' },
+    { id: 'koridor-6', name: 'Koridor 6 (Sungai Lulut - 0 Km)', type: 'koridor' },
+    { id: 'koridor-7', name: 'Koridor 7 (0 Km - Dermaga Alalak)', type: 'koridor' },
+    { id: 'koridor-8', name: 'Koridor 8 (Terminal Antasari - Pelabuhan Trisakti)', type: 'koridor' },
+    { id: 'koridor-9', name: 'Koridor 9 (Terminal Antasari - Belitung)', type: 'koridor' },
+    { id: 'koridor-10', name: 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', type: 'koridor' },
+    { id: 'koridor-11', name: 'Koridor 11 (Terminal Antasari - Beruntung Jaya)', type: 'koridor' },
+    { id: 'koridor-12', name: 'Koridor 12 (Banjar Raya - Terminal Antasari)', type: 'koridor' },
+    { id: 'koridor-13', name: 'Koridor 13 (Trisakti - Sudimampir (Via Lingkar Selatan))', type: 'koridor' }
   ];
 
   const calculateTickets = () => {
     const { jumbo, besar, sedang, kecil, cup } = bottleCount;
-    return Math.floor(jumbo / 1) + Math.floor(besar / 5) + Math.floor(sedang / 8) + Math.floor(kecil / 15) + Math.floor(cup / 20);
+    return (jumbo * 2) + Math.floor(besar / 5) + Math.floor(sedang / 8) + Math.floor(kecil / 15) + Math.floor(cup / 20);
   };
 
   const handleQRScan = async (qrCode: string) => {
@@ -163,47 +196,39 @@ export default function PetugasDashboard() {
 
     const trimmedQR = qrCode.trim();
     setCurrentQR(trimmedQR);
-    
+
     if (currentUserData && currentUserData.qrCode === trimmedQR) {
-      console.log('✅ Using cached user data:', currentUserData.name);
+      console.log('Using cached user data:', currentUserData.name);
       toast.success(`QR Code ${trimmedQR} berhasil di-scan - Penumpang: ${currentUserData.name} (${currentUserData.ticketsBalance} tiket)`);
       return;
     }
-    
+
     try {
-      console.log('🔍 Mencari pengguna dengan QR Code:', trimmedQR);
-      
-      // Get all users first
+      console.log('Mencari pengguna dengan QR Code:', trimmedQR);
+
       const response = await usersAPI.getAllUsers();
-      
-      console.log('📊 Response dari API:', response);
-      console.log('📊 Users data:', response?.users);
-      
+
       if (response && response.users && Array.isArray(response.users)) {
-        console.log(`📋 Total users ditemukan: ${response.users.length}`);
-        
+        console.log(`Total users ditemukan: ${response.users.length}`);
+
         const userData = response.users.find((user: any) => {
           const userQrCode = user.qrCode || '';
-          console.log(`🔍 Comparing: "${userQrCode}" === "${trimmedQR}"`);
           return userQrCode === trimmedQR;
         });
-        
-        console.log('🎯 User ditemukan:', userData);
-        
+
         if (userData) {
-          // Check if user is penumpang and active
           if (userData.role !== 'penumpang') {
             toast.error(`QR Code ini untuk ${userData.role}, bukan penumpang`);
             setCurrentUserData(null);
             return;
           }
-          
+
           if (userData.status !== 'active') {
             toast.error(`Akun penumpang ${userData.name} tidak aktif (status: ${userData.status})`);
             setCurrentUserData(null);
             return;
           }
-          
+
           const normalizedUser: UserData = {
             id: userData.id,
             email: userData.email,
@@ -217,42 +242,32 @@ export default function PetugasDashboard() {
             points: userData.points,
             status: userData.status
           };
-          
+
           setCurrentUserData(normalizedUser);
           toast.success(`QR Code ${trimmedQR} berhasil di-scan - Penumpang: ${normalizedUser.name} (${normalizedUser.ticketsBalance} tiket)`);
-          console.log('✅ User data berhasil di-normalize:', normalizedUser);
         } else {
           setCurrentUserData(null);
           toast.error(`Penumpang dengan QR Code ${trimmedQR} tidak ditemukan di database`);
-          console.log('❌ QR Code tidak ditemukan di database');
         }
       } else {
         setCurrentUserData(null);
         toast.error('Gagal memuat data pengguna dari server');
-        console.log('❌ Response tidak valid atau users array kosong');
       }
     } catch (error) {
-      console.error('❌ Error finding user:', error);
-      
+      console.error('Error finding user:', error);
+
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          console.log('🚨 Authentication error - token may be expired');
           toast.error('Sesi login berakhir, silakan login ulang');
           navigate('/login');
           return;
         } else if (error.message.includes('403')) {
           toast.error('Tidak ada izin untuk mengakses data pengguna');
-        } else if (error.message.includes('Access token required')) {
-          toast.error('Token akses diperlukan, silakan login ulang');
-          navigate('/login');
-          return;
         } else {
           toast.error(`Gagal memverifikasi QR Code: ${error.message}`);
         }
-      } else {
-        toast.error('Gagal memverifikasi QR Code - Error tidak diketahui');
       }
-      
+
       setCurrentUserData(null);
     }
   };
@@ -272,16 +287,6 @@ export default function PetugasDashboard() {
     setLoading(true);
 
     try {
-      console.log('🔄 Memulai transaksi botol...');
-      console.log('📋 Data transaksi:', {
-        userQrCode: currentQR,
-        userName: currentUserData.name,
-        location: selectedLocation,
-        bottles: bottleCount,
-        totalTickets
-      });
-
-      // Process each bottle type separately
       const bottleTypes = [
         { type: 'jumbo', count: bottleCount.jumbo },
         { type: 'besar', count: bottleCount.besar },
@@ -290,19 +295,14 @@ export default function PetugasDashboard() {
         { type: 'cup', count: bottleCount.cup }
       ];
 
-      console.log('🔄 Processing bottle types:', bottleTypes);
-
       for (const bottle of bottleTypes) {
         if (bottle.count > 0) {
-          console.log(`🔄 Processing ${bottle.type}: ${bottle.count} bottles`);
-          
-          const result = await transactionsAPI.processBottleExchange({
+          await transactionsAPI.processBottleExchange({
             userQrCode: currentQR,
             bottleType: bottle.type,
-            bottleCount: bottle.count
+            bottleCount: bottle.count,
+            location: locations.find(l => l.id === selectedLocation)?.name || selectedLocation
           });
-          console.log(`✅ ${bottle.type} processed successfully:`, result);
-          
         }
       }
 
@@ -319,40 +319,19 @@ export default function PetugasDashboard() {
       const newTransactions = [transaction, ...todayTransactions];
       setTodayTransactions(newTransactions);
       localStorage.setItem('todayTransactions', JSON.stringify(newTransactions));
-      
+
       toast.success(`Berhasil! ${totalTickets} tiket ditambahkan ke akun ${currentUserData.name}`);
-      console.log('✅ Transaksi berhasil:', transaction);
       setCurrentUserData(prev => prev ? {
         ...prev,
         ticketsBalance: prev.ticketsBalance + totalTickets
       } : null);
-      
-      // Reset bottle count but keep user data for potential next transaction
+
       setBottleCount({ jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0 });
 
     } catch (error) {
-      console.error('❌ Error processing bottle exchange:', error);
-      
+      console.error('Error processing bottle exchange:', error);
       if (error instanceof Error) {
-        console.log('❌ Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-        
-        if (error.message.includes('404')) {
-          toast.error('Endpoint transaksi botol tidak ditemukan di backend (404)');
-        } else if (error.message.includes('403')) {
-          toast.error('Tidak ada permission untuk mengakses endpoint transaksi botol');
-        } else if (error.message.includes('401')) {
-          toast.error('Sesi login berakhir, silakan login ulang');
-          navigate('/login');
-        } else if (error.message.includes('500')) {
-          toast.error('Server error saat memproses transaksi botol');
-        } else {
-          toast.error(`Gagal memproses transaksi botol: ${error.message}`);
-        }
-      } else {
-        toast.error('Gagal memproses transaksi botol - Error tidak diketahui');
+        toast.error(`Gagal memproses transaksi botol: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -365,35 +344,20 @@ export default function PetugasDashboard() {
       return;
     }
 
-    console.log('🎯 Validating ticket balance:', {
-      currentBalance: currentUserData.ticketsBalance,
-      required: 1,
-      hasEnough: currentUserData.ticketsBalance >= 1
-    });
-
     if (currentUserData.ticketsBalance < 1) {
-      toast.error(`❌ Saldo tiket ${currentUserData.name} tidak mencukupi! Saldo saat ini: ${currentUserData.ticketsBalance} tiket (minimal 1 tiket diperlukan)`);
+      toast.error(`Saldo tiket ${currentUserData.name} tidak mencukupi!`);
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('🔄 Memulai validasi tiket...');
-      console.log('📋 Data validasi:', {
-        userQrCode: currentQR,
-        userName: currentUserData.name,
-        location: selectedLocation,
-        currentBalance: currentUserData.ticketsBalance
-      });
-
       await transactionsAPI.processTicketUsage({
         userQrCode: currentQR,
         ticketCount: 1,
         location: locations.find(l => l.id === selectedLocation)?.name
       });
 
-      // Create transaction record for local display
       const transaction: Transaction = {
         id: Date.now(),
         qrCode: currentQR,
@@ -406,36 +370,17 @@ export default function PetugasDashboard() {
       const newTransactions = [transaction, ...todayTransactions];
       setTodayTransactions(newTransactions);
       localStorage.setItem('todayTransactions', JSON.stringify(newTransactions));
-      toast.success(`✅ Tiket valid! Penumpang ${currentUserData.name} dapat naik bus. Sisa saldo: ${currentUserData.ticketsBalance - 1} tiket`);
-      console.log('✅ Validasi tiket berhasil:', transaction);
-      
-      // Update user balance locally (optimistic update)
+      toast.success(`Tiket valid! Penumpang ${currentUserData.name} dapat naik bus.`);
+
       setCurrentUserData(prev => prev ? {
         ...prev,
         ticketsBalance: prev.ticketsBalance - 1
       } : null);
 
     } catch (error) {
-      console.error('❌ Error processing ticket usage:', error);
-      
+      console.error('Error processing ticket usage:', error);
       if (error instanceof Error) {
-        console.log('❌ Ticket validation error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-        
-        if (error.message.includes('404')) {
-          toast.error('Endpoint validasi tiket tidak ditemukan di backend (404)');
-        } else if (error.message.includes('403')) {
-          toast.error('Tidak ada permission untuk mengakses endpoint validasi tiket');
-        } else if (error.message.includes('401')) {
-          toast.error('Sesi login berakhir, silakan login ulang');
-          navigate('/login');
-        } else {
-          toast.error(`Gagal memproses validasi tiket: ${error.message}`);
-        }
-      } else {
-        toast.error('Gagal memproses validasi tiket');
+        toast.error(`Gagal memproses validasi tiket: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -447,9 +392,10 @@ export default function PetugasDashboard() {
       toast.error('Pilih lokasi tugas terlebih dahulu');
       return;
     }
-    
+
     setActiveMode(mode);
-    toast.success(`Shift ${mode} dimulai di ${locations.find(l => l.id === selectedLocation)?.name}`);
+    setMobileMenuOpen(false);
+    toast.success(`Shift ${mode} dimulai`);
   };
 
   const endShift = () => {
@@ -457,6 +403,7 @@ export default function PetugasDashboard() {
     setCurrentQR('');
     setCurrentUserData(null);
     setBottleCount({ jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0 });
+    setMobileMenuOpen(false);
     toast.success('Shift berakhir');
   };
 
@@ -468,43 +415,116 @@ export default function PetugasDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Recycle className="h-8 w-8 text-green-600" />
-            <h1 className="text-2xl font-bold text-green-800">Eco-Tiket</h1>
-            <Badge variant="secondary">Petugas</Badge>
+            <img src={logoEcoTiket} alt="Logo" className="h-10 w-auto" />
+            <Badge variant="secondary" className="hidden sm:inline">Petugas</Badge>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">Halo, {user.name}</span>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <span className="text-xs sm:text-sm text-gray-600">{user.name}</span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">Logout</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Status Card */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
+      {/* Navigation Tabs - Desktop */}
+      {activeMode && (
+        <div className="hidden sm:block bg-white border-b sticky top-0 z-50">
+          <div className="container mx-auto px-4">
+            <div className="flex gap-0">
+              {[
+                { id: 'transaction', label: 'Transaksi', icon: QrCode },
+                { id: 'history', label: 'Riwayat Hari Ini', icon: History },
+                { id: 'register', label: 'Daftar Penumpang', icon: UserPlus }
+              ].map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+                      activeTab === tab.id
+                        ? 'border-green-600 text-green-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Tabs - Mobile */}
+      {activeMode && (
+        <div className="sm:hidden bg-white border-b">
+          <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+          
+          {mobileMenuOpen && (
+            <div className="border-t px-4 py-2 space-y-1 bg-gray-50">
+              {[
+                { id: 'transaction', label: 'Transaksi', icon: QrCode },
+                { id: 'history', label: 'Riwayat Hari Ini', icon: History },
+                { id: 'register', label: 'Daftar Penumpang', icon: UserPlus }
+              ].map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-green-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <Card className="mb-4 sm:mb-8">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl flex items-center">
               <MapPin className="h-5 w-5 mr-2" />
               Status Shift
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Label>Lokasi Tugas:</Label>
+          <CardContent className="space-y-3 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-2 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <Label className="text-sm">Lokasi Tugas:</Label>
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-64">
+                    <SelectTrigger className="w-full sm:w-64 text-sm">
                       <SelectValue placeholder="Pilih lokasi" />
                     </SelectTrigger>
                     <SelectContent>
                       {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
+                        <SelectItem key={location.id} value={location.id} className="text-sm">
                           {location.name} ({location.type})
                         </SelectItem>
                       ))}
@@ -513,235 +533,179 @@ export default function PetugasDashboard() {
                 </div>
                 {activeMode && (
                   <div className="flex items-center space-x-2">
-                    <Badge variant="default" className="bg-green-600">
+                    <Badge variant="default" className="bg-green-600 text-xs sm:text-sm">
                       {activeMode === 'stand' ? 'Stand Aktif' : 'Karnet Aktif'}
                     </Badge>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs sm:text-sm text-gray-600">
                       di {locations.find(l => l.id === selectedLocation)?.name}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="space-x-2">
-                {!activeMode ? (
-                  <>
-                    <Button onClick={() => startShift('stand')} className="bg-green-600 hover:bg-green-700">
-                      <Recycle className="h-4 w-4 mr-2" />
-                      Mulai Stand
-                    </Button>
-                    <Button onClick={() => startShift('karnet')} variant="outline">
-                      <Bus className="h-4 w-4 mr-2" />
-                      Mulai Karnet
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={endShift} variant="destructive">
-                    Akhiri Shift
-                  </Button>
-                )}
-              </div>
+              {activeMode && (
+                <Button onClick={endShift} variant="destructive" className="w-full sm:w-auto text-sm">
+                  Akhiri Shift
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {activeMode && (
-          <Tabs defaultValue="transaction" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="transaction">Transaksi</TabsTrigger>
-              <TabsTrigger value="history">Riwayat Hari Ini</TabsTrigger>
-            </TabsList>
+        {activeMode ? (
+          <>
+            {activeTab === 'transaction' && (
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+                  <QRScanner
+                    onScanResult={handleQRScan}
+                    placeholder="Scan QR Code penumpang"
+                  />
 
-            <TabsContent value="transaction" className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* QR Scanner */}
-                <QRScanner 
-                  onScanResult={handleQRScan}
-                  placeholder="Scan QR Code penumpang"
-                />
-
-                {/* Transaction Form */}
-                {activeMode === 'stand' ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Recycle className="h-5 w-5 mr-2" />
-                        Stand - Tukar Botol ke Tiket
-                      </CardTitle>
-                      <CardDescription>
-                        Input jumlah botol yang ditukar
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {currentUserData && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 text-green-800">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="font-medium">Penumpang: {currentUserData.name}</span>
+                  {activeMode === 'stand' ? (
+                    <Card>
+                      <CardHeader className="pb-3 sm:pb-6">
+                        <CardTitle className="text-base sm:text-lg">Stand - Tukar Botol</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
+                          Input jumlah botol
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4 sm:space-y-6">
+                        {currentUserData && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-2 sm:p-3">
+                            <div className="flex items-center space-x-2 text-green-800 text-sm">
+                              <CheckCircle className="h-4 w-4" />
+                              <span className="font-medium">{currentUserData.name}</span>
+                            </div>
+                            <div className="text-xs sm:text-sm text-green-700 mt-1">
+                              <p>Tiket: <span className="font-bold">{currentUserData.ticketsBalance}</span></p>
+                            </div>
                           </div>
-                          <div className="text-sm text-green-700 mt-1">
-                            <p>Saldo Tiket: <span className="font-bold">{currentUserData.ticketsBalance}</span> | Poin: {currentUserData.points}</p>
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Botol Jumbo</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={bottleCount.jumbo}
-                            onChange={(e) => setBottleCount({...bottleCount, jumbo: parseInt(e.target.value) || 0})}
-                          />
-                          <p className="text-xs text-gray-500">1 botol = 1 tiket</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Botol Besar</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={bottleCount.besar}
-                            onChange={(e) => setBottleCount({...bottleCount, besar: parseInt(e.target.value) || 0})}
-                          />
-                          <p className="text-xs text-gray-500">5 botol = 1 tiket</p>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                          {[
+                            { key: 'jumbo', label: 'Botol Jumbo', ratio: '1 = 2 tiket' },
+                            { key: 'besar', label: 'Botol Besar', ratio: '5 = 1 tiket' },
+                            { key: 'sedang', label: 'Botol Sedang', ratio: '8 = 1 tiket' },
+                            { key: 'kecil', label: 'Botol Kecil', ratio: '15 = 1 tiket' },
+                            { key: 'cup', label: 'Cup Plastik', ratio: '20 = 1 tiket' }
+                          ].map(bottle => (
+                            <div key={bottle.key} className="space-y-1 sm:space-y-2">
+                              <Label className="text-xs sm:text-sm">{bottle.label}</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={bottleCount[bottle.key as keyof typeof bottleCount]}
+                                onChange={(e) => setBottleCount({ 
+                                  ...bottleCount, 
+                                  [bottle.key]: parseInt(e.target.value) || 0 
+                                })}
+                                className="text-sm h-8 sm:h-10"
+                              />
+                              <p className="text-xs text-gray-500">{bottle.ratio}</p>
+                            </div>
+                          ))}
                         </div>
 
-                        <div className="space-y-2">
-                          <Label>Botol Sedang</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={bottleCount.sedang}
-                            onChange={(e) => setBottleCount({...bottleCount, sedang: parseInt(e.target.value) || 0})}
-                          />
-                          <p className="text-xs text-gray-500">8 botol = 1 tiket</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Botol Kecil</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={bottleCount.kecil}
-                            onChange={(e) => setBottleCount({...bottleCount, kecil: parseInt(e.target.value) || 0})}
-                          />
-                          <p className="text-xs text-gray-500">15 botol = 1 tiket</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Cup Plastik</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={bottleCount.cup}
-                            onChange={(e) => setBottleCount({...bottleCount, cup: parseInt(e.target.value) || 0})}
-                          />
-                          <p className="text-xs text-gray-500">20 cup = 1 tiket</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">Total Tiket yang Didapat:</span>
-                          <Badge className="text-lg px-3 py-1 bg-green-600">
-                            {calculateTickets()} Tiket
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <Button 
-                        onClick={handleStandTransaction} 
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        disabled={!currentUserData || calculateTickets() === 0 || loading}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {loading ? 'Memproses...' : 'Proses Transaksi'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Bus className="h-5 w-5 mr-2" />
-                        Karnet - Validasi Tiket Bus
-                      </CardTitle>
-                      <CardDescription>
-                        Validasi tiket penumpang untuk naik bus
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {currentUserData && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 text-blue-800">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="font-medium">Penumpang: {currentUserData.name}</span>
-                          </div>
-                          <div className="text-sm text-blue-700 mt-1">
-                            <p>Saldo Tiket: <span className="font-bold text-lg">{currentUserData.ticketsBalance}</span> | Poin: {currentUserData.points}</p>
-                            {currentUserData.ticketsBalance < 1 && (
-                              <p className="text-red-600 font-medium mt-1">⚠️ Saldo tidak mencukupi untuk naik bus!</p>
-                            )}
+                        <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">Total:</span>
+                            <Badge className="text-base sm:text-lg px-2 py-1 bg-green-600">
+                              {calculateTickets()} Tiket
+                            </Badge>
                           </div>
                         </div>
-                      )}
 
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="flex items-center space-x-2 text-blue-800">
-                          <AlertCircle className="h-5 w-5" />
-                          <span className="font-medium">Tarif Bus: 1 Tiket</span>
+                        <Button
+                          onClick={handleStandTransaction}
+                          className="w-full bg-green-600 hover:bg-green-700 text-sm"
+                          disabled={!currentUserData || calculateTickets() === 0 || loading}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          {loading ? 'Memproses...' : 'Proses'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardHeader className="pb-3 sm:pb-6">
+                        <CardTitle className="text-base sm:text-lg flex items-center">
+                          <Bus className="h-4 w-4 mr-2" />
+                          Karnet - Validasi
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
+                          Validasi tiket untuk naik bus
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4 sm:space-y-6">
+                        {currentUserData && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
+                            <div className="flex items-center space-x-2 text-blue-800 text-sm">
+                              <CheckCircle className="h-4 w-4" />
+                              <span className="font-medium">{currentUserData.name}</span>
+                            </div>
+                            <div className="text-xs sm:text-sm text-blue-700 mt-1">
+                              <p>Saldo: <span className="font-bold text-base">{currentUserData.ticketsBalance}</span></p>
+                              {currentUserData.ticketsBalance < 1 && (
+                                <p className="text-red-600 font-medium mt-1 text-xs">⚠️ Saldo tidak cukup!</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                          <div className="flex items-center space-x-2 text-blue-800 text-sm">
+                            <AlertCircle className="h-5 w-5" />
+                            <span className="font-medium">Tarif: 1 Tiket</span>
+                          </div>
                         </div>
-                        <p className="text-sm text-blue-700 mt-1">
-                          Sistem akan otomatis memotong 1 tiket dari saldo penumpang
-                        </p>
-                      </div>
 
-                      <Button 
-                        onClick={handleKarnetTransaction} 
-                        className="w-full"
-                        disabled={!currentUserData || (currentUserData?.ticketsBalance < 1) || loading}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {loading ? 'Memproses...' : 'Validasi Tiket'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+                        <Button
+                          onClick={handleKarnetTransaction}
+                          className="w-full text-sm"
+                          disabled={!currentUserData || (currentUserData?.ticketsBalance < 1) || loading}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          {loading ? 'Memproses...' : 'Validasi'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="history" className="space-y-6">
+            {activeTab === 'history' && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
                     <History className="h-5 w-5 mr-2" />
-                    Riwayat Transaksi Hari Ini
+                    Riwayat Hari Ini
                   </CardTitle>
-                  <CardDescription>
-                    Semua transaksi yang telah diproses hari ini ({todayTransactions.length} transaksi)
+                  <CardDescription className="text-xs sm:text-sm">
+                    {todayTransactions.length} transaksi
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {todayTransactions.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2 sm:space-y-4">
                       {todayTransactions.map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <div className={`p-2 rounded-full ${
-                              transaction.type === 'stand' 
-                                ? 'bg-green-100 text-green-600' 
+                        <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-4 border rounded-lg gap-2">
+                          <div className="flex items-start space-x-3 flex-1">
+                            <div className={`p-2 rounded-full flex-shrink-0 ${transaction.type === 'stand'
+                                ? 'bg-green-100 text-green-600'
                                 : 'bg-blue-100 text-blue-600'
-                            }`}>
+                              }`}>
                               {transaction.type === 'stand' ? <Recycle className="h-4 w-4" /> : <Bus className="h-4 w-4" />}
                             </div>
-                            <div>
-                              <p className="font-medium">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm">
                                 {transaction.type === 'stand' ? 'Tukar Botol' : 'Validasi Tiket'}
                               </p>
-                              <p className="text-sm text-gray-600">
-                                {transaction.qrCode} • {transaction.location}
+                              <p className="text-xs sm:text-sm text-gray-600 break-all">
+                                {transaction.qrCode}
                               </p>
+                              <p className="text-xs text-gray-500">{transaction.location}</p>
                               <p className="text-xs text-gray-500">{transaction.timestamp}</p>
                               {transaction.bottles && (
                                 <p className="text-xs text-gray-500">
@@ -750,8 +714,8 @@ export default function PetugasDashboard() {
                               )}
                             </div>
                           </div>
-                          <Badge variant={transaction.type === 'stand' ? 'default' : 'secondary'}>
-                            {transaction.tickets > 0 ? '+' : ''}{transaction.tickets} Tiket
+                          <Badge variant={transaction.type === 'stand' ? 'default' : 'secondary'} className="text-xs sm:text-sm w-fit">
+                            {transaction.tickets > 0 ? '+' : ''}{transaction.tickets}
                           </Badge>
                         </div>
                       ))}
@@ -759,49 +723,65 @@ export default function PetugasDashboard() {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Belum ada transaksi hari ini</p>
+                      <p className="text-sm">Belum ada transaksi hari ini</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        )}
+            )}
 
-        {!activeMode && (
+            {activeTab === 'register' && (
+              <Card>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Buat Akun Penumpang
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Daftarkan penumpang baru ke sistem
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RegisterPassengerForm />
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>Pilih Mode Kerja</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">Pilih Mode Kerja</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Pilih lokasi tugas dan mode kerja untuk memulai shift
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="text-center p-6 border-2 border-dashed border-gray-200 rounded-lg">
-                  <Recycle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Mode Stand</h3>
-                  <p className="text-gray-600 mb-4">
-                    Tukar botol plastik menjadi tiket bus untuk penumpang
+              <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="text-center p-4 sm:p-6 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Recycle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Mode Stand</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                    Tukar botol plastik menjadi tiket bus
                   </p>
-                  <Button 
-                    onClick={() => startShift('stand')} 
-                    className="bg-green-600 hover:bg-green-700"
+                  <Button
+                    onClick={() => startShift('stand')}
+                    className="w-full bg-green-600 hover:bg-green-700 text-sm"
                     disabled={!selectedLocation}
                   >
                     Mulai Stand
                   </Button>
                 </div>
 
-                <div className="text-center p-6 border-2 border-dashed border-gray-200 rounded-lg">
-                  <Bus className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Mode Karnet</h3>
-                  <p className="text-gray-600 mb-4">
+                <div className="text-center p-4 sm:p-6 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Bus className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Mode Karnet</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                     Validasi tiket penumpang yang akan naik bus
                   </p>
-                  <Button 
-                    onClick={() => startShift('karnet')} 
+                  <Button
+                    onClick={() => startShift('karnet')}
                     variant="outline"
+                    className="w-full text-sm"
                     disabled={!selectedLocation}
                   >
                     Mulai Karnet
@@ -813,5 +793,214 @@ export default function PetugasDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+function RegisterPassengerForm() {
+  const [formData, setFormData] = useState({
+    nik: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    phone: '',
+    address: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError('');
+    if (registeredUser) setRegisteredUser(null);
+  };
+
+  const validateForm = () => {
+    if (!formData.name || !formData.password || !formData.nik) {
+      setError('Nama, NIK, dan password harus diisi');
+      return false;
+    }
+    if (!/^\d{16}$/.test(formData.nik)) {
+      setError('NIK harus 16 digit angka');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password minimal 6 karakter');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Konfirmasi password tidak cocok');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError('');
+    setRegisteredUser(null);
+
+    try {
+      const userData = {
+        nik: formData.nik,
+        password: formData.password,
+        name: formData.name,
+        role: 'penumpang',
+        phone: formData.phone || undefined,
+        address: formData.address || undefined
+      };
+
+      const response = await authAPI.register(userData);
+
+      if (!response.user || !response.user.qrCode) {
+        throw new Error('Respon server tidak valid atau QR code tidak ditemukan');
+      }
+
+      setRegisteredUser(response.user as RegisteredUser);
+      toast.success('Registrasi penumpang berhasil!');
+
+      setFormData({
+        nik: '',
+        password: '',
+        confirmPassword: '',
+        name: '',
+        phone: '',
+        address: ''
+      });
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Registrasi gagal';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (registeredUser) {
+    return (
+      <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4 p-3 sm:p-4 bg-green-50 rounded-lg">
+        <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-green-600" />
+        <h3 className="text-base sm:text-xl font-semibold">Penumpang Berhasil Didaftarkan!</h3>
+        <div className="w-full">
+          <p className="text-xs sm:text-sm">Nama: <span className="font-medium block mt-1">{registeredUser.name}</span></p>
+          <p className="text-xs sm:text-sm mt-2">NIK: <span className="font-medium block mt-1">{registeredUser.nik}</span></p>
+        </div>
+        
+        {registeredUser.qrCode ? (
+           <QRGenerator value={registeredUser.qrCode} />
+        ) : (
+          <p className="text-red-500 text-xs sm:text-sm">Gagal memuat QR Code.</p>
+        )}
+       
+        <p className="text-xs text-gray-600 break-all">
+          QR Code: <span className="font-mono bg-gray-100 p-1 rounded text-xs">{registeredUser.qrCode}</span>
+        </p>
+        <p className="text-xs text-gray-500">Minta penumpang untuk menyimpan QR Code ini.</p>
+        <Button onClick={() => setRegisteredUser(null)} className="w-full text-sm">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Daftarkan Lagi
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      <div className="space-y-1 sm:space-y-2">
+        <Label htmlFor="reg-name" className="text-xs sm:text-sm">Nama Lengkap *</Label>
+        <Input 
+          id="reg-name" 
+          value={formData.name} 
+          onChange={(e) => handleInputChange('name', e.target.value)} 
+          placeholder="Masukkan nama lengkap" 
+          className="text-sm h-8 sm:h-10"
+          required 
+        />
+      </div>
+      <div className="space-y-1 sm:space-y-2">
+        <Label htmlFor="reg-nik" className="text-xs sm:text-sm flex items-center gap-2">
+          <CreditCard className="h-4 w-4" /> NIK (16 digit) *
+        </Label>
+        <Input 
+          id="reg-nik" 
+          value={formData.nik} 
+          onChange={(e) => handleInputChange('nik', e.target.value.replace(/\D/g, ''))} 
+          maxLength={16} 
+          placeholder="1234567890123456" 
+          className="text-sm h-8 sm:h-10"
+          required 
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="space-y-1 sm:space-y-2">
+          <Label htmlFor="reg-password" className="text-xs sm:text-sm">Password *</Label>
+          <Input 
+            id="reg-password" 
+            type="password" 
+            value={formData.password} 
+            onChange={(e) => handleInputChange('password', e.target.value)} 
+            placeholder="Min 6 kar" 
+            className="text-sm h-8 sm:h-10"
+            required 
+          />
+        </div>
+        <div className="space-y-1 sm:space-y-2">
+          <Label htmlFor="reg-confirmPassword" className="text-xs sm:text-sm">Konfirmasi *</Label>
+          <Input 
+            id="reg-confirmPassword" 
+            type="password" 
+            value={formData.confirmPassword} 
+            onChange={(e) => handleInputChange('confirmPassword', e.target.value)} 
+            placeholder="Ulangi pass" 
+            className="text-sm h-8 sm:h-10"
+            required 
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="space-y-1 sm:space-y-2">
+          <Label htmlFor="reg-phone" className="text-xs sm:text-sm">No. Telp</Label>
+          <Input 
+            id="reg-phone" 
+            value={formData.phone} 
+            onChange={(e) => handleInputChange('phone', e.target.value)} 
+            placeholder="0812..." 
+            className="text-sm h-8 sm:h-10"
+          />
+        </div>
+        <div className="space-y-1 sm:space-y-2">
+          <Label htmlFor="reg-address" className="text-xs sm:text-sm">Alamat</Label>
+          <Input 
+            id="reg-address" 
+            value={formData.address} 
+            onChange={(e) => handleInputChange('address', e.target.value)} 
+            placeholder="Alamat" 
+            className="text-sm h-8 sm:h-10"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <Alert variant="destructive" className="py-2 sm:py-3">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Button type="submit" className="w-full text-sm" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Mendaftarkan...
+          </>
+        ) : (
+          'Daftarkan Penumpang'
+        )}
+      </Button>
+    </form>
   );
 }

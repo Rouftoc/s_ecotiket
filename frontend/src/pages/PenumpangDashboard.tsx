@@ -197,9 +197,9 @@ export default function PenumpangDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Saldo Tiket</p>
-                  <p className="text-3xl font-bold text-blue-600">{user.ticketsBalance}</p>
+                  <p className="text-3xl font-bold text-green-600">{user.ticketsBalance}</p>
                 </div>
-                <Ticket className="h-8 w-8 text-blue-600" />
+                <Ticket className="h-8 w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -221,9 +221,9 @@ export default function PenumpangDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Transaksi</p>
-                  <p className="text-3xl font-bold text-purple-600">{transactions.length}</p>
+                  <p className="text-3xl font-bold text-green-600">{transactions.length}</p>
                 </div>
-                <History className="h-8 w-8 text-purple-600" />
+                <History className="h-8 w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>

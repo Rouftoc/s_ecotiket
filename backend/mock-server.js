@@ -371,7 +371,7 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
     let ticketsEarned = 0;
     switch (bottleType.toLowerCase()) {
       case 'jumbo':
-        ticketsEarned = Math.floor(bottleCount / 1);
+        ticketsEarned = bottleCount * 2;
         break;
       case 'besar':
         ticketsEarned = Math.floor(bottleCount / 5);
@@ -392,7 +392,7 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
     const pointsEarned = bottleCount * 10;
     
     user.tickets_balance += ticketsEarned;
-    user.ticketsBalance = user.tickets_balance; // Compatibility
+    user.ticketsBalance = user.tickets_balance; 
     user.points += pointsEarned;
     
     const newTransaction = {
@@ -403,7 +403,7 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
       description: `${bottleCount} botol ${bottleType} ditukar`,
       tickets_change: ticketsEarned,
       points_earned: pointsEarned,
-      location: location || 'Stand Penukaran',
+      location: location,
       status: 'completed',
       created_at: new Date().toISOString(),
       petugas_name: petugas.name,
@@ -465,7 +465,7 @@ app.post('/api/transactions/ticket-usage', authenticate, (req, res) => {
       description: `Penggunaan ${ticketCount} tiket untuk transportasi`,
       tickets_change: -ticketCount,
       points_earned: 0,
-      location: location || 'Terminal',
+      location: location,
       status: 'completed',
       created_at: new Date().toISOString(),
       petugas_name: req.user.name,
@@ -484,6 +484,22 @@ app.post('/api/transactions/ticket-usage', authenticate, (req, res) => {
   } catch (error) {
     console.error('Ticket usage error:', error);
     res.status(500).json({ error: 'Internal server error during ticket usage' });
+  }
+});
+
+app.get('/api/transactions/user/:userId', authenticate, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    if (req.user.role === 'penumpang' && req.user.id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const userTransactions = db.transactions
+      .filter(t => t.user_id === userId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    res.json({ transactions: userTransactions || [] });
+  } catch (error) {
+    console.error('Get user transactions error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -650,7 +666,6 @@ app.listen(PORT, async () => {
   console.log('='.repeat(50));
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
   saveDataToFile();

@@ -1,5 +1,3 @@
-// src/components/RolePieChart.tsx
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -52,13 +50,11 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
         return [];
       }
 
-      // Filter users berdasarkan userFilter
       let filteredUsers = users;
       if (userFilter !== 'all') {
         filteredUsers = users.filter(user => user.status === userFilter);
       }
 
-      // Hitung distribusi berdasarkan status
       const statusCounts: Record<string, number> = {
         active: 0,
         inactive: 0,
@@ -72,9 +68,8 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
         }
       });
 
-      // Konversi ke format chart data
       const data: ChartDataPoint[] = Object.entries(statusCounts)
-        .filter(([_, count]) => count > 0) // Hanya tampilkan yang ada datanya
+        .filter(([_, count]) => count > 0) 
         .map(([status, count]) => ({
           name: STATUS_LABELS[status as keyof typeof STATUS_LABELS] || status,
           value: count,
@@ -176,8 +171,6 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
               </PieChart>
             </ResponsiveContainer>
 
-
-            {/* Total Users */}
             <div className="mt-4 pt-4 border-t text-center">
               <div className="text-2xl font-bold text-gray-900">{getTotalUsers()}</div>
               <div className="text-sm text-gray-500">Total Pengguna</div>

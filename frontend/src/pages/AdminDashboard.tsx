@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Users,
   UserCheck,
@@ -43,14 +44,16 @@ import {
   History,
   Building,
   PillBottleIcon,
-  BarChart
+  BarChart,
+  UserPlus,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import QRGenerator from '@/components/QRGenerator';
 import ReportGenerator from '@/components/ReportGenerator';
 import BottleStatisticsChart from '@/components/BottleLineChart';
-import { usersAPI, transactionsAPI } from '@/lib/api';
+import { usersAPI, transactionsAPI, authAPI } from '@/lib/api';
 import RolePieChart from '@/components/RolePieChart';
 
 interface CurrentUser {
@@ -129,15 +132,10 @@ interface PetugasDetail extends UserRecord {
 interface Location {
   id: number;
   name: string;
-  address: string;
   type: 'terminal' | 'koridor' | 'stand';
-  coordinates?: string;
-  description?: string;
   capacity?: number;
   operating_hours?: string;
   status: 'active' | 'inactive' | 'maintenance';
-  created_at: string;
-  updated_at: string;
 }
 
 interface Transaction {
@@ -189,59 +187,126 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statsFilter, setStatsFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('all');
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
   const hardcodedLocations: Location[] = [
     {
       id: 1,
       name: 'Terminal Antasari',
-      address: 'Jl. Pangeran Antasari, Banjarmasin Tengah',
       type: 'terminal',
-      coordinates: '-3.3194,114.5906',
-      description: 'Terminal utama untuk rute Banjarmasin Tengah',
-      capacity: 200,
-      operating_hours: '05:00-22:00',
-      status: 'active',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z'
+      operating_hours: '08:00-18:00',
+      status: 'active'
     },
     {
       id: 2,
       name: 'Terminal KM 0',
-      address: 'Jl. Ahmad Yani KM 0, Banjarmasin',
       type: 'terminal',
-      coordinates: '-3.3181,114.5906',
-      description: 'Terminal KM 0 pusat kota',
-      capacity: 150,
-      operating_hours: '05:00-23:00',
-      status: 'active',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z'
+      operating_hours: '08:00-18:00',
+      status: 'active'
     },
     {
       id: 3,
-      name: 'Koridor 1 - Jl. Lambung Mangkurat',
-      address: 'Jl. Lambung Mangkurat, Banjarmasin',
+      name: 'Koridor 1 (Terminal Antasari - Terminal Km. 6)',
       type: 'koridor',
-      coordinates: '-3.3206,114.5900',
-      description: 'Koridor utama jalur Lambung Mangkurat',
-      capacity: 50,
-      operating_hours: '06:00-21:00',
-      status: 'active',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z'
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
     },
     {
       id: 4,
-      name: 'Stand Pasar Flamboyan',
-      address: 'Pasar Flamboyan, Banjarmasin',
-      type: 'stand',
-      coordinates: '-3.3200,114.5850',
-      description: 'Stand penukaran di area Pasar Flamboyan',
-      capacity: 20,
-      operating_hours: '07:00-18:00',
-      status: 'active',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z'
+      name: 'Koridor 2 (Terminal Antasari - RS Ansari Saleh)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 5,
+      name: 'Koridor 3 (Terminal Antasari - Jembatan Bromo)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 6,
+      name: 'Koridor 4 (Sungai Andai - Teluk Tiram)',
+      type: 'koridor',
+      capacity: 12,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 7,
+      name: 'Koridor 5 (Terminal Antasari - Pemangkih Laut)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 8,
+      name: 'Koridor 6 (Sungai Lulut - 0 Km)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 9,
+      name: 'Koridor 7 (0 Km - Dermaga Alalak)',
+      type: 'koridor',
+      capacity: 12,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 10,
+      name: 'Koridor 8 (Terminal Antasari - Pelabuhan Trisakti)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 11,
+      name: 'Koridor 9 (Terminal Antasari - Belitung)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 12,
+      name: 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))',
+      type: 'koridor',
+      capacity: 12,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 13,
+      name: 'Koridor 11 (Terminal Antasari - Beruntung Jaya)',
+      type: 'koridor',
+      capacity: 12,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 14,
+      name: 'Koridor 12 (Banjar Raya - Terminal Antasari)',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
+    },
+    {
+      id: 15,
+      name: 'Koridor 13 (Trisakti - Sudimampir (Via Lingkar Selatan))',
+      type: 'koridor',
+      capacity: 18,
+      operating_hours: '06:00-18:00',
+      status: 'active'
     }
   ];
 
@@ -315,7 +380,7 @@ export default function AdminDashboard() {
 
   const loadTransactions = async () => {
     try {
-      console.log('🔄 Loading transactions with filter:', statsFilter);
+      console.log('Loading transactions with filter:', statsFilter);
 
       let dateFilters = {};
       const now = new Date();
@@ -397,7 +462,6 @@ export default function AdminDashboard() {
     try {
       const response = await transactionsAPI.getTransactionsByUserId(userId);
 
-      // Pastikan response ada dan memiliki array transaksi valid
       const transactions = Array.isArray(response?.transactions)
         ? (response.transactions as Transaction[])
         : [];
@@ -413,7 +477,6 @@ export default function AdminDashboard() {
       setIsTransactionsLoading(false);
     }
   };
-
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -550,13 +613,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddLocation = async (locationData: Omit<Location, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleAddNewUser = async (userData: any) => {
+    try {
+      const response = await authAPI.register(userData);
+      
+      if (response && response.message) {
+         toast.success(response.message);
+      } else {
+         toast.success(`Pengguna baru (${userData.role}) berhasil ditambahkan.`);
+      }
+      
+      setIsAddingUser(false);
+      loadUsers();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menambahkan pengguna baru';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleAddLocation = async (locationData: Omit<Location, 'id'>) => {
     try {
       const newLocation: Location = {
         ...locationData,
-        id: Math.max(...locations.map(l => l.id)) + 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        id: Math.max(...locations.map(l => l.id), 0) + 1,
       };
       setLocations(prev => [...prev, newLocation]);
       toast.success('Lokasi berhasil ditambahkan');
@@ -569,9 +648,7 @@ export default function AdminDashboard() {
   const handleEditLocation = async (locationData: Location) => {
     try {
       setLocations(prev => prev.map(loc =>
-        loc.id === locationData.id
-          ? { ...locationData, updated_at: new Date().toISOString() }
-          : loc
+        loc.id === locationData.id ? locationData : loc
       ));
       setEditingLocation(null);
       toast.success('Lokasi berhasil diperbarui');
@@ -1222,9 +1299,14 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />Manajemen Pengguna
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />Manajemen Pengguna
+                    </CardTitle>
+                    <Button onClick={() => setIsAddingUser(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />Tambah Pengguna
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -1363,7 +1445,6 @@ export default function AdminDashboard() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Nama Lokasi</TableHead>
-                          <TableHead>Alamat</TableHead>
                           <TableHead>Tipe</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Kapasitas</TableHead>
@@ -1373,7 +1454,7 @@ export default function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {locations.length === 0 ? (
-                          <TableRow><TableCell colSpan={7} className="text-center py-8 text-gray-500">{loading ? 'Memuat data lokasi...' : 'Belum ada lokasi terdaftar'}</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">{loading ? 'Memuat data lokasi...' : 'Belum ada lokasi terdaftar'}</TableCell></TableRow>
                         ) : (
                           locations.map((location) => (
                             <TableRow key={location.id}>
@@ -1384,11 +1465,9 @@ export default function AdminDashboard() {
                                   </div>
                                   <div>
                                     <div className="font-medium text-gray-900">{location.name}</div>
-                                    <div className="text-sm text-gray-500">{formatDate(location.created_at)}</div>
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell><div className="max-w-xs truncate">{location.address}</div></TableCell>
                               <TableCell>
                                 <Badge className={getLocationTypeColor(location.type)}>
                                   {location.type === 'terminal' ? 'Terminal' : location.type === 'koridor' ? 'Koridor' : location.type === 'stand' ? 'Stand' : location.type}
@@ -1495,7 +1574,7 @@ export default function AdminDashboard() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Tambah Lokasi Baru</DialogTitle>
-              <DialogDescription>Tambah terminal, halte, atau stasiun baru</DialogDescription>
+              <DialogDescription>Tambah terminal, koridor, atau stand baru.</DialogDescription>
             </DialogHeader>
             <LocationForm onSubmit={(data) => handleAddLocation(data)} onCancel={() => setIsAddingLocation(false)} />
           </DialogContent>
@@ -1514,18 +1593,32 @@ export default function AdminDashboard() {
         </Dialog>
       )}
 
+      {isAddingUser && (
+        <Dialog open={isAddingUser} onOpenChange={() => setIsAddingUser(false)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Tambah Pengguna Baru</DialogTitle>
+              <DialogDescription>
+                Buat akun baru untuk petugas atau penumpang.
+              </DialogDescription>
+            </DialogHeader>
+            <AddUserForm 
+              onSubmit={handleAddNewUser} 
+              onCancel={() => setIsAddingUser(false)} 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
     </div>
   );
 }
 
-function LocationForm({ location, onSubmit, onCancel }: { location?: Location; onSubmit: (data: Omit<Location, 'id' | 'created_at' | 'updated_at'>) => void; onCancel: () => void; }) {
+function LocationForm({ location, onSubmit, onCancel }: { location?: Location; onSubmit: (data: Omit<Location, 'id'>) => void; onCancel: () => void; }) {
   const [formData, setFormData] = useState({
     name: location?.name || '',
-    address: location?.address || '',
     type: location?.type || 'terminal' as 'terminal' | 'koridor' | 'stand',
-    coordinates: location?.coordinates || '',
-    description: location?.description || '',
     capacity: location?.capacity || 0,
     operating_hours: location?.operating_hours || '',
     status: location?.status || 'active' as 'active' | 'inactive' | 'maintenance'
@@ -1537,16 +1630,16 @@ function LocationForm({ location, onSubmit, onCancel }: { location?: Location; o
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Nama Lokasi</Label>
-          <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Terminal Flamboyan" required />
+          <Label htmlFor="name">Nama Lokasi</Label>
+          <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Terminal Antasari" required />
         </div>
         <div className="space-y-2">
-          <Label>Tipe Lokasi</Label>
+          <Label htmlFor="type">Tipe Lokasi</Label>
           <Select value={formData.type} onValueChange={(value: 'terminal' | 'koridor' | 'stand') => setFormData({ ...formData, type: value })}>
-            <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+            <SelectTrigger id="type"><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="terminal">Terminal</SelectItem>
               <SelectItem value="koridor">Koridor</SelectItem>
@@ -1555,27 +1648,19 @@ function LocationForm({ location, onSubmit, onCancel }: { location?: Location; o
           </Select>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Alamat</Label>
-        <Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Jl. Flamboyan No. 1, Palangkaraya" required />
-      </div>
-      <div className="space-y-2">
-        <Label>Deskripsi (Opsional)</Label>
-        <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Deskripsi lokasi..." rows={3} />
-      </div>
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label>Kapasitas</Label>
-          <Input type="number" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 0 })} placeholder="100" min="0" />
+          <Label htmlFor="capacity">Kapasitas</Label>
+          <Input id="capacity" type="number" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 0 })} placeholder="100" min="0" />
         </div>
         <div className="space-y-2">
-          <Label>Jam Operasional</Label>
-          <Input value={formData.operating_hours} onChange={(e) => setFormData({ ...formData, operating_hours: e.target.value })} placeholder="06:00-22:00" />
+          <Label htmlFor="operating_hours">Jam Operasional</Label>
+          <Input id="operating_hours" value={formData.operating_hours} onChange={(e) => setFormData({ ...formData, operating_hours: e.target.value })} placeholder="06:00-22:00" />
         </div>
         <div className="space-y-2">
-          <Label>Status</Label>
+          <Label htmlFor="status">Status</Label>
           <Select value={formData.status} onValueChange={(value: 'active' | 'inactive' | 'maintenance') => setFormData({ ...formData, status: value })}>
-            <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+            <SelectTrigger id="status"><SelectValue placeholder="Pilih Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktif</SelectItem>
               <SelectItem value="inactive">Tidak Aktif</SelectItem>
@@ -1584,13 +1669,145 @@ function LocationForm({ location, onSubmit, onCancel }: { location?: Location; o
           </Select>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Koordinat GPS (Opsional)</Label>
-        <Input value={formData.coordinates} onChange={(e) => setFormData({ ...formData, coordinates: e.target.value })} placeholder="-2.2180,113.9120" />
-      </div>
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Batal</Button>
         <Button type="submit">{location ? 'Update Lokasi' : 'Tambah Lokasi'}</Button>
+      </div>
+    </form>
+  );
+}
+
+function AddUserForm({ onSubmit, onCancel }: { onSubmit: (data: any) => Promise<void>; onCancel: () => void; }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    role: 'penumpang' as 'penumpang' | 'petugas',
+    email: '',
+    nik: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    address: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError('');
+  };
+
+  const validateForm = () => {
+    const { name, role, email, nik, password, confirmPassword } = formData;
+    if (!name || !password || !confirmPassword) {
+      setError('Nama, Password, dan Konfirmasi Password harus diisi.');
+      return false;
+    }
+    if (role === 'petugas' && !email) {
+      setError('Email harus diisi untuk petugas.');
+      return false;
+    }
+    if (role === 'penumpang' && !nik) {
+      setError('NIK harus diisi untuk penumpang.');
+      return false;
+    }
+    if (role === 'penumpang' && !/^\d{16}$/.test(nik)) {
+      setError('NIK harus terdiri dari 16 digit angka.');
+      return false;
+    }
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter.');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Konfirmasi password tidak cocok.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    setError('');
+
+    const userData = {
+      name: formData.name,
+      role: formData.role,
+      password: formData.password,
+      phone: formData.phone || undefined,
+      address: formData.address || undefined,
+      ...(formData.role === 'penumpang' ? { nik: formData.nik } : { email: formData.email })
+    };
+    
+    await onSubmit(userData);
+    setLoading(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Nama Lengkap</Label>
+          <Input id="name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="role">Role</Label>
+          <Select value={formData.role} onValueChange={(value: 'penumpang' | 'petugas') => {
+            setFormData(prev => ({ ...prev, role: value, email: '', nik: '' }));
+          }}>
+            <SelectTrigger id="role"><SelectValue placeholder="Pilih Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="penumpang">Penumpang</SelectItem>
+              <SelectItem value="petugas">Petugas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {formData.role === 'penumpang' ? (
+        <div className="space-y-2">
+          <Label htmlFor="nik">NIK (16 digit)</Label>
+          <Input id="nik" value={formData.nik} onChange={(e) => handleInputChange('nik', e.target.value.replace(/\D/g, ''))} maxLength={16} required placeholder="Contoh: 6371..."/>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} required placeholder="Contoh: petugas@ecotiket.com" />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} required placeholder="Minimal 6 karakter" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+          <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={(e) => handleInputChange('confirmPassword', e.target.value)} required placeholder="Ulangi password" />
+        </div>
+      </div>
+       <div className="grid grid-cols-2 gap-4">
+         <div className="space-y-2">
+          <Label htmlFor="phone">No. Telepon (Opsional)</Label>
+          <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} placeholder="Contoh: 0812..."/>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="address">Alamat (Opsional)</Label>
+          <Input id="address" value={formData.address} onChange={(e) => handleInputChange('address', e.target.value)} placeholder="Contoh: Jl. Ahmad Yani"/>
+        </div>
+      </div>
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>Batal</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menambahkan...</> : 'Tambah Pengguna'}
+        </Button>
       </div>
     </form>
   );

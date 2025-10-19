@@ -11,21 +11,21 @@ const generateToken = (userId) => {
 };
 
 const generateQRCode = async (role) => {
-  const prefix = role === 'admin' ? 'ECO-ADMIN' : 
-                 role === 'petugas' ? 'ECO-OFFICER' : 'ECO-USER';
-  
+  const prefix = role === 'admin' ? 'ECO-ADMIN' :
+    role === 'petugas' ? 'ECO-OFFICER' : 'ECO-USER';
+
   let qrCode;
   let isUnique = false;
   let counter = 1;
 
   while (!isUnique) {
     qrCode = `${prefix}-${counter.toString().padStart(3, '0')}`;
-    
+
     const [existing] = await pool.execute(
       'SELECT id FROM users WHERE qr_code = ?',
       [qrCode]
     );
-    
+
     if (existing.length === 0) {
       isUnique = true;
     } else {
@@ -137,7 +137,7 @@ router.post('/login', async (req, res) => {
     const { email, nik, password, qrCode } = req.body;
 
     let query, params;
-    
+
     if (qrCode) {
       query = 'SELECT * FROM users WHERE qr_code = ? AND status = "active"';
       params = [qrCode];
@@ -204,7 +204,7 @@ router.get('/profile', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     const [users] = await pool.execute(
       'SELECT id, email, nik, name, role, phone, address, qr_code, tickets_balance, points, status FROM users WHERE id = ? AND status = "active"',
       [decoded.userId]

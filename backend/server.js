@@ -61,9 +61,9 @@ const startServer = async () => {
     await testConnection();
     
     app.listen(PORT, () => {
-      console.log(`🚀 Eco-Tiket API server running on port ${PORT}`);
-      console.log(`📱 Health check: http://localhost:${PORT}/health`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Eco-Tiket API server running on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

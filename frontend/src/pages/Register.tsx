@@ -212,7 +212,6 @@ export default function Register() {
               />
             </div>
 
-            {/* NIK input is now always shown */}
             <div className="space-y-2">
               <Label htmlFor="nik" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />

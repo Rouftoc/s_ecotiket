@@ -21,7 +21,7 @@ router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), asy
   try {
     await connection.beginTransaction();
 
-    const { userQrCode, bottleType, bottleCount } = req.body;
+    const { userQrCode, bottleType, bottleCount, location } = req.body;
     const petugasId = req.user.id;
 
     if (!userQrCode || !bottleType || !bottleCount) {
@@ -68,8 +68,8 @@ router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), asy
     );
 
     await connection.execute(
-      'INSERT INTO transactions (user_id, petugas_id, type, description, bottles_count, bottle_type, tickets_change, points_earned, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [user.id, petugasId, 'bottle_exchange', `Tukar ${bottleCount} botol ${bottleType}`, bottleCount, bottleType, ticketsEarned, pointsToAdd, 'completed']
+      'INSERT INTO transactions (user_id, petugas_id, type, description, bottles_count, bottle_type, tickets_change, points_earned, status, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [user.id, petugasId, 'bottle_exchange', `Tukar ${bottleCount} botol ${bottleType}`, bottleCount, bottleType, ticketsEarned, pointsToAdd, 'completed', location]
     );
 
     await connection.commit();
@@ -134,7 +134,7 @@ router.post('/ticket-usage', authenticateToken, requireRole(['petugas']), async 
           'ticket_usage',
           `Menggunakan ${ticketCount} tiket untuk transportasi`,
           -ticketCount,
-          location || 'Unknown Location'
+          location
         ]
       );
 
