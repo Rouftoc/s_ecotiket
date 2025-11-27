@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 09, 2025 at 05:56 AM
+-- Generation Time: Nov 27, 2025 at 02:56 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.24
 
@@ -109,13 +109,13 @@ INSERT INTO `gallery` (`id`, `title`, `description`, `image_url`, `is_active`, `
 CREATE TABLE `locations` (
   `id` int NOT NULL,
   `name` varchar(255) NOT NULL,
-  `type` enum('terminal','koridor','stand') NOT NULL DEFAULT 'terminal',
-  `address` text,
-  `coordinates` varchar(100) DEFAULT NULL,
+  `type` enum('terminal','koridor','stand') NOT NULL,
+  `address` text NOT NULL,
+  `coordinates` varchar(255) DEFAULT NULL,
   `description` text,
   `capacity` int DEFAULT NULL,
-  `status` enum('active','inactive','maintenance') NOT NULL DEFAULT 'active',
-  `operating_hours` varchar(50) DEFAULT '06:00-22:00',
+  `status` enum('active','inactive','maintenance') DEFAULT 'active',
+  `operating_hours` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -125,9 +125,21 @@ CREATE TABLE `locations` (
 --
 
 INSERT INTO `locations` (`id`, `name`, `type`, `address`, `coordinates`, `description`, `capacity`, `status`, `operating_hours`, `created_at`, `updated_at`) VALUES
-(1, 'Terminal Palangka Raya', 'terminal', 'Jl. Raya Palangka Raya', '-2.2135, 113.9213', 'Terminal utama Palangka Raya', 500, 'active', '05:00-22:00', '2025-09-25 02:05:02', '2025-09-25 02:05:02'),
-(2, 'Koridor 1 - Pasar Besar', 'koridor', 'Jl. Pasar Besar, Palangka Raya', '-2.2090, 113.9180', 'Halte koridor 1 dekat pasar besar', 50, 'active', '06:00-21:00', '2025-09-25 02:05:02', '2025-09-25 02:05:02'),
-(3, 'Stand Daur Ulang Mall', 'stand', 'Palangka Raya Mall', '-2.2200, 113.9250', 'Stand daur ulang di mall utama', 20, 'active', '10:00-21:00', '2025-09-25 02:05:02', '2025-09-25 02:05:02');
+(1, 'Terminal Antasari', 'terminal', 'Jl. Pangeran Antasari', NULL, NULL, 100, 'active', '08:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(2, 'Terminal KM 0', 'terminal', 'Pusat Kota', NULL, NULL, 100, 'active', '08:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(3, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'koridor', 'Jalur Koridor 1', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(4, 'Koridor 2 (Terminal Antasari - RS Ansari Saleh)', 'koridor', 'Jalur Koridor 2', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(5, 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', 'koridor', 'Jalur Koridor 3', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(6, 'Koridor 4 (Sungai Andai - Teluk Tiram)', 'koridor', 'Jalur Koridor 4', NULL, NULL, 12, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(7, 'Koridor 5 (Terminal Antasari - Pemangkih Laut)', 'koridor', 'Jalur Koridor 5', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(8, 'Koridor 6 (Sungai Lulut - 0 Km)', 'koridor', 'Jalur Koridor 6', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(9, 'Koridor 7 (0 Km - Dermaga Alalak)', 'koridor', 'Jalur Koridor 7', NULL, NULL, 12, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(10, 'Koridor 8 (Terminal Antasari - Pelabuhan Trisakti)', 'koridor', 'Jalur Koridor 8', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(11, 'Koridor 9 (Terminal Antasari - Belitung)', 'koridor', 'Jalur Koridor 9', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(12, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'koridor', 'Jalur Koridor 10', NULL, NULL, 12, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(13, 'Koridor 11 (Terminal Antasari - Beruntung Jaya)', 'koridor', 'Jalur Koridor 11', NULL, NULL, 12, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(14, 'Koridor 12 (Banjar Raya - Terminal Antasari)', 'koridor', 'Jalur Koridor 12', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32'),
+(15, 'Koridor 13 (Trisakti - Sudimampir (Via Lingkar Selatan))', 'koridor', 'Jalur Koridor 13', NULL, NULL, 18, 'active', '06:00-18:00', '2025-11-26 12:21:32', '2025-11-26 12:21:32');
 
 -- --------------------------------------------------------
 
@@ -248,7 +260,90 @@ INSERT INTO `transactions` (`id`, `user_id`, `petugas_id`, `type`, `description`
 (70, 10, 8, 'bottle_exchange', 'Tukar 8 botol sedang', 8, 'sedang', 1, 0, NULL, 'completed', '2025-10-09 04:01:12'),
 (71, 10, 8, 'bottle_exchange', 'Tukar 15 botol kecil', 15, 'kecil', 1, 0, NULL, 'completed', '2025-10-09 04:01:19'),
 (72, 10, 8, 'bottle_exchange', 'Tukar 20 botol cup', 20, 'cup', 1, 0, NULL, 'completed', '2025-10-09 04:01:28'),
-(73, 10, 8, 'bottle_exchange', 'Tukar 5 botol besar', 5, 'besar', 1, 0, NULL, 'completed', '2025-10-09 04:01:32');
+(73, 10, 8, 'bottle_exchange', 'Tukar 5 botol besar', 5, 'besar', 1, 0, NULL, 'completed', '2025-10-09 04:01:32'),
+(74, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:34'),
+(75, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:35'),
+(76, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:35'),
+(77, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:35'),
+(78, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:36'),
+(79, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:36'),
+(80, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:36'),
+(81, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:37'),
+(82, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:37'),
+(83, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:38'),
+(84, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:38'),
+(85, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:38'),
+(86, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1', 'completed', '2025-10-15 02:10:39'),
+(87, 10, 8, 'bottle_exchange', 'Tukar 10 botol jumbo', 10, 'jumbo', 10, 1, NULL, 'completed', '2025-10-15 02:12:10'),
+(88, 10, 8, 'bottle_exchange', 'Tukar 10 botol jumbo', 10, 'jumbo', 10, 1, NULL, 'completed', '2025-10-15 04:25:14'),
+(89, 10, 8, 'bottle_exchange', 'Tukar 8 botol jumbo', 8, 'jumbo', 8, 1, NULL, 'completed', '2025-10-15 04:29:22'),
+(90, 10, 8, 'bottle_exchange', 'Tukar 4 botol jumbo', 4, 'jumbo', 4, 0, NULL, 'completed', '2025-10-15 04:34:12'),
+(91, 10, 8, 'bottle_exchange', 'Tukar 1 botol jumbo', 1, 'jumbo', 1, 0, NULL, 'completed', '2025-10-15 04:36:26'),
+(92, 10, 8, 'bottle_exchange', 'Tukar 4 botol jumbo', 4, 'jumbo', 4, 1, NULL, 'completed', '2025-10-15 04:40:06'),
+(93, 9, 8, 'bottle_exchange', 'Tukar 9 botol jumbo', 9, 'jumbo', 9, 1, NULL, 'completed', '2025-10-15 04:41:09'),
+(94, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:35'),
+(95, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:36'),
+(96, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:37'),
+(97, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:37'),
+(98, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:37'),
+(99, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 2', 'completed', '2025-10-15 04:42:38'),
+(100, 9, 8, 'bottle_exchange', 'Tukar 20 botol cup', 20, 'cup', 1, 0, NULL, 'completed', '2025-10-15 04:43:49'),
+(101, 9, 8, 'bottle_exchange', 'Tukar 14 botol jumbo', 14, 'jumbo', 14, 2, NULL, 'completed', '2025-10-15 04:46:27'),
+(102, 9, 8, 'bottle_exchange', 'Tukar 7 botol jumbo', 7, 'jumbo', 7, 0, NULL, 'completed', '2025-10-15 04:47:25'),
+(103, 9, 8, 'bottle_exchange', 'Tukar 2 botol jumbo', 2, 'jumbo', 2, 1, 'Terminal Antasari', 'completed', '2025-10-15 04:58:24'),
+(104, 9, 8, 'bottle_exchange', 'Tukar 2 botol jumbo', 2, 'jumbo', 2, 0, 'Terminal Antasari', 'completed', '2025-10-15 05:00:02'),
+(105, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', 'completed', '2025-10-15 05:36:53'),
+(106, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', 'completed', '2025-10-15 05:36:53'),
+(107, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', 'completed', '2025-10-15 05:36:53'),
+(108, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 3 (Terminal Antasari - Jembatan Bromo)', 'completed', '2025-10-15 05:36:54'),
+(109, 10, 8, 'bottle_exchange', 'Tukar 18 botol jumbo', 18, 'jumbo', 18, 2, 'Terminal Antasari', 'completed', '2025-10-15 06:44:55'),
+(110, 10, 8, 'bottle_exchange', 'Tukar 3 botol jumbo', 3, 'jumbo', 3, 1, 'Terminal KM 0', 'completed', '2025-10-17 23:47:02'),
+(111, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:26'),
+(112, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:27'),
+(113, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:27'),
+(114, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:27'),
+(115, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:29'),
+(116, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:29'),
+(117, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-17 23:47:30'),
+(118, 10, 8, 'bottle_exchange', 'Tukar 8 botol sedang', 8, 'sedang', 1, 0, 'Terminal KM 0', 'completed', '2025-10-18 01:15:51'),
+(119, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:08'),
+(120, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:08'),
+(121, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:08'),
+(122, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:08'),
+(123, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:08'),
+(124, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:09'),
+(125, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:09'),
+(126, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:09'),
+(127, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:09'),
+(128, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:10'),
+(129, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:10'),
+(130, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:10'),
+(131, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:10'),
+(132, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:11'),
+(133, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:11'),
+(134, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:12'),
+(135, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-10-18 01:16:17'),
+(136, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:57:59'),
+(137, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:00'),
+(138, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:00'),
+(139, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:01'),
+(140, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:01'),
+(141, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:02'),
+(142, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:02'),
+(143, 10, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))', 'completed', '2025-10-20 12:58:02'),
+(144, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:18'),
+(145, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:18'),
+(146, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:19'),
+(147, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:19'),
+(148, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:20'),
+(149, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:20'),
+(150, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Terminal KM 0', 'completed', '2025-11-27 01:50:20'),
+(151, 9, 8, 'bottle_exchange', 'Tukar 1 botol jumbo', 1, 'jumbo', 1, 0, 'Terminal Antasari', 'completed', '2025-11-27 02:45:59'),
+(152, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-11-27 02:46:42'),
+(153, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-11-27 02:46:44'),
+(154, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-11-27 02:46:44'),
+(155, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-11-27 02:46:45'),
+(156, 9, 8, 'ticket_usage', 'Menggunakan 1 tiket untuk transportasi', NULL, NULL, -1, 0, 'Koridor 1 (Terminal Antasari - Terminal Km. 6)', 'completed', '2025-11-27 02:53:56');
 
 -- --------------------------------------------------------
 
@@ -279,14 +374,20 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `email`, `nik`, `password`, `name`, `role`, `phone`, `address`, `qr_code`, `tickets_balance`, `points`, `status`, `created_at`, `updated_at`) VALUES
 (1, 'admin@ecotiket.com', NULL, 'admin123', 'Admin Eco-Tiket', 'admin', '0811-1111-1111', 'Jl. Admin No. 1, Banjarmasin', 'ECO-ADMIN-1758585577-10D005', 0, 0, 'active', '2025-09-22 01:31:14', '2025-09-22 23:59:37'),
-(7, 'admin@sistemecotiket.com', NULL, '$2b$10$t1KxngBXG9WO/aZ3Ef7UkOHp7CSmGdL83CepLMDwzOv2JcLOKwfHu', 'Admin-Tbekula', 'admin', '085754513889', '-', 'ECO-ADMIN-002', 0, 0, 'active', '2025-09-22 05:51:48', '2025-09-22 05:51:48'),
+(7, 'admin@sistemecotiket.com', NULL, '$2b$10$t1KxngBXG9WO/aZ3Ef7UkOHp7CSmGdL83CepLMDwzOv2JcLOKwfHu', 'Admin Tbekula', 'admin', '085754513889', '-', 'ECO-ADMIN-002', 0, 0, 'active', '2025-09-22 05:51:48', '2025-10-19 06:41:42'),
 (8, 'husin@ecotiket.com', NULL, '$2b$10$R.LC/kedECb9iU70fXZ0keV5MqhE8T7fFgyxs/6CII0VZeGs.lPp.', 'Husin', 'petugas', '08123456789', '-', 'ECO-OFFICER-1758585577-4CF8EB', 0, 0, 'active', '2025-09-22 06:30:00', '2025-09-22 23:59:37'),
-(9, NULL, '6305050678934256', '$2b$10$Ew1w05dZdSM/UZ6ovb6jRurWhiSayFh38C2U5rAM.6.Yfr.g9smPq', 'Amat Plastik', 'penumpang', '087659812300', 'Sambang Lehong', 'ECO-USER-001', 4, 141, 'active', '2025-09-23 00:01:41', '2025-10-09 03:21:33'),
-(10, NULL, '1234567890123454', '$2b$10$J00Y67Lg2voAoWVrE7afZO5nxSKDfJ7FN/5c7d4qoT3XfYHhtuI2e', 'Toha', 'penumpang', '081234567891', 'Tamban', 'ECO-USER-002', 19, 778, 'active', '2025-09-23 05:01:00', '2025-10-09 04:01:32'),
+(9, NULL, '6305050678934256', '$2b$10$Ew1w05dZdSM/UZ6ovb6jRurWhiSayFh38C2U5rAM.6.Yfr.g9smPq', 'Amat Plastik', 'penumpang', '087659812300', 'Sambang Lehong', 'ECO-USER-001', 22, 145, 'active', '2025-09-23 00:01:41', '2025-11-27 02:53:56'),
+(10, NULL, '1234567890123454', '$2b$10$J00Y67Lg2voAoWVrE7afZO5nxSKDfJ7FN/5c7d4qoT3XfYHhtuI2e', 'Toha', 'penumpang', '081234567891', 'Tamban', 'ECO-USER-002', 29, 785, 'active', '2025-09-23 05:01:00', '2025-10-20 12:58:02'),
 (11, NULL, '6300000000000000', '$2b$10$7PazndGCGMXIXB1hmrB8kumKFDpo4n/iA7vqDXVP7p9yCBg0cU8e6', 'Riska Maulida', 'penumpang', '085353535353', 'Hulu Sungai', 'ECO-USER-003', 0, 0, 'active', '2025-09-24 05:14:26', '2025-09-24 05:15:21'),
 (12, NULL, '6300000000000012', '$2b$10$0QjsO29P3T.sD3paZ60ieOIlE33n5bL73XJGXkH9zCu0sDwof0f0C', 'User Er', 'penumpang', '08123456743', '-', 'ECO-USER-004', 0, 0, 'inactive', '2025-09-25 04:42:55', '2025-09-25 04:51:25'),
 (13, NULL, '1234567890123431', '$2b$10$3HLFG0hodqRYUJKPlOul5ulDCgigiatZ3d0gCUofz1nL5IG3vkSNS', 'Adit', 'penumpang', '08123456700', '-', 'ECO-USER-005', 0, 0, 'active', '2025-09-27 08:31:29', '2025-09-27 08:31:29'),
-(14, NULL, '6300000000000885', '$2b$10$YDKbg3lFsHX/dFr1gGv4u.66ncs/AW0v1DAP6FexrExo6hIVo4ACe', 'Hendra', 'penumpang', '081234567871', '-', 'ECO-USER-006', 0, 0, 'active', '2025-10-03 09:25:38', '2025-10-03 09:25:38');
+(14, NULL, '6300000000000885', '$2b$10$YDKbg3lFsHX/dFr1gGv4u.66ncs/AW0v1DAP6FexrExo6hIVo4ACe', 'Hendra', 'penumpang', '081234567871', '-', 'ECO-USER-006', 0, 0, 'active', '2025-10-03 09:25:38', '2025-10-03 09:25:38'),
+(15, NULL, '1234567890123333', '$2b$10$J7WsqJFsuYv5dVS58GhCNek4WiTNnBXa0R2bv8mcgiiHApJrPVQFa', 'Rubblee', 'penumpang', '081234567822', '-', 'ECO-USER-007', 0, 0, 'active', '2025-10-17 23:43:38', '2025-10-17 23:43:38'),
+(16, 'wahyu@gmail.com', NULL, '$2b$10$cOo3ZUmUcGYZOrm0BSJ0DO85P3V/kwOPGmJP0QLdYJgfx5FOJpWkm', 'Wahyu', 'petugas', '081234567823', '-', 'ECO-OFFICER-001', 0, 0, 'active', '2025-10-18 00:41:37', '2025-10-18 00:41:37'),
+(18, NULL, '1234567890123459', '$2b$10$soOnVxRUO.PiCEfyqGErEukDZ6U2hdq0keZ94ksHM02NOD08cAnbW', 'Bahris', 'penumpang', '08123456789', '-', 'ECO-USER-008', 0, 0, 'active', '2025-10-20 01:12:58', '2025-10-20 01:12:58'),
+(19, NULL, '1111111111111222', '$2b$10$ieOXLsUMNZry6i/gUMrtpOP61uiThY.ORRnV/zDzVMs5n0jVNFYG6', 'Asep', 'penumpang', '085757575758', '-', 'ECO-USER-009', 0, 0, 'active', '2025-10-20 02:23:17', '2025-10-20 02:23:17'),
+(20, NULL, '1111111111111233', '$2b$10$SYq79Wxt1ytkFNM/PlFTSuAcSs8yXRWqjRQQ6sEoIx/bcgGXcA17y', 'Nunky', 'penumpang', '085757575753', '-', 'ECO-USER-010', 0, 0, 'active', '2025-10-20 05:37:20', '2025-10-20 05:37:20'),
+(21, NULL, '1234567890123452', '$2b$10$YFjDg6SfCjOTT25GFQV4FuhARSxNYmmAv5qyFEse3BtbJTKlSTKG2', 'Rahmat', 'penumpang', '081234567899', 'Margasari', 'ECO-USER-011', 0, 0, 'active', '2025-11-15 00:53:23', '2025-11-15 00:53:23');
 
 -- --------------------------------------------------------
 
@@ -424,7 +525,7 @@ ALTER TABLE `gallery`
 -- AUTO_INCREMENT for table `locations`
 --
 ALTER TABLE `locations`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `petugas_assignments`
@@ -442,7 +543,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=157;
 
 --
 -- AUTO_INCREMENT for table `users`
