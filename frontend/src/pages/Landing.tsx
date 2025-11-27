@@ -5,16 +5,16 @@ import heroImage1 from '@/assets/hero_section1.png';
 import heroImage2 from '@/assets/hero_section2.png';
 import heroImage3 from '@/assets/hero_section3.png';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
-import poster1 from '@/assets/poster1.png'; 
+import poster1 from '@/assets/poster1.png';
 import poster2 from '@/assets/poster2.png';
 import poster3 from '@/assets/poster3.png';
 import poster4 from '@/assets/poster4.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Recycle, 
-  Bus, 
-  Users, 
-  ArrowRight, 
+import {
+  Recycle,
+  Bus,
+  Users,
+  ArrowRight,
   CheckCircle,
   Globe,
   QrCode,
@@ -28,16 +28,13 @@ export default function Landing() {
 
   const heroImages = [
     {
-      url: heroImage1,
-      title: 'Peluncuran Program Eco-Tiket'
+      url: heroImage1
     },
     {
-      url: heroImage2,
-      title: 'Kegiatan Edukasi Daur Ulang'
+      url: heroImage2
     },
     {
-      url: heroImage3,
-      title: 'Bus Trans Banjarmasin'
+      url: heroImage3
     }
   ];
 
@@ -78,9 +75,9 @@ export default function Landing() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-            <img src={logoEcoTiket} alt="Logo" className="h-12 w-25" />
-          </div>
-            
+              <img src={logoEcoTiket} alt="Logo" className="h-12 w-25" />
+            </div>
+
             <div className="hidden md:flex items-center space-x-8">
               <a href="#beranda" className="text-gray-600 hover:text-green-600 transition-colors">Beranda</a>
               <a href="#cara-kerja" className="text-gray-600 hover:text-green-600 transition-colors">Cara Kerja</a>
@@ -90,13 +87,13 @@ export default function Landing() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={() => navigate('/login')}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors animate-slideInRight cursor-pointer"
               >
                 Masuk
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/register')}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors animate-slideInRight cursor-pointer"
               >
@@ -114,19 +111,13 @@ export default function Landing() {
             <div className="relative animate-slideInLeft w-full">
               <div className="relative overflow-hidden w-full h-96 md:h-[500px] lg:h-[600px] bg-gray-200">
                 {heroImages.map((img, idx) => (
-                  <div key={idx} className={`absolute w-full h-full transition-opacity duration-1000 ${
-                    idx === currentSlide ? 'opacity-100' : 'opacity-0'
-                  }`}>
+                  <div key={idx} className={`absolute w-full h-full transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
+                    }`}>
                     <img
                       src={img.url}
-                      alt={img.title}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-8">
-                      <div className="text-white">
-                        <h3 className="text-4xl md:text-5xl font-bold mb-4 leading-tight max-w-2xl">{img.title}</h3>
-                        <p className="text-sm opacity-90">Program Eco-Tiket Trans Banjarmasin</p>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -151,9 +142,8 @@ export default function Landing() {
                   <button
                     key={idx}
                     onClick={() => setCurrentSlide(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      idx === currentSlide ? 'bg-green-600 w-8' : 'bg-gray-300 w-2'
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-green-600 w-8' : 'bg-gray-300 w-2'
+                      }`}
                   />
                 ))}
               </div>
@@ -221,7 +211,14 @@ export default function Landing() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
                 {posters.map((poster, idx) => (
                   <div key={idx} className="max-w-xs overflow-hidden rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 animate-fadeInUp" style={{ animationDelay: `${idx * 0.15}s` }}>
-                    <img src={poster} alt={`Poster ${idx + 1}`} className="w-full h-auto object-cover" />
+                    <a
+                      href="https://www.instagram.com/p/DLfMGYZBBsd/?igsh=MWtyY3N2azhqNTV3Yw=="
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img src={poster} alt={`Poster ${idx + 1}`} className="w-full h-auto object-cover" />
+                    </a>
+
                   </div>
                 ))}
               </div>
@@ -318,7 +315,7 @@ export default function Landing() {
             <div className="animate-fadeInUp">
               <h4 className="text-lg font-semibold mb-4">CONTACT</h4>
               <p className="text-gray-600">
-                Telp: 0895-3433-34340<br/>
+                Telp: 0895-3433-34340<br />
                 Email: transbanjarmasin54@gmail.com
               </p>
             </div>
@@ -328,23 +325,23 @@ export default function Landing() {
               <p className="text-gray-600 mb-6">
                 Jl. Karya Bakti No.54, Kuin Cerucuk, Kec. Banjarmasin Bar., Kota Banjarmasin, Kalimantan Selatan 70128
               </p>
-              
+
               <div className="flex gap-3">
                 <a href="#" className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                 </a>
                 <a href="#" className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white hover:bg-blue-600 transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 002.856-3.915 9.964 9.964 0 01-2.824.856 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 002.856-3.915 9.964 9.964 0 01-2.824.856 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
                 </a>
                 <a href="#" className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white hover:bg-red-700 transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
                 </a>
               </div>
             </div>
           </div>
 
           <div className="border-t border-gray-200 mt-12 pt-8 text-center text-gray-500">
-            <p>© 2025 Dihsub Banjarmasin. All Rights Reserved.</p>
+            <p>© 2025 Dishub Kota Banjarmasin. All Rights Reserved.</p>
             <p className="mt-2">Follow Us</p>
           </div>
         </div>

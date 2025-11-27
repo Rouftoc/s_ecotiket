@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, UserPlus, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import ecotiketLogo from '@/assets/logo-eco.png';
 import QRGenerator from '@/components/QRGenerator';
 import { authAPI } from '@/lib/api';
 
@@ -32,7 +33,6 @@ export default function Register() {
   const [error, setError] = useState('');
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
 
-  // Removed 'role' and 'email' from the initial form state
   const [formData, setFormData] = useState({
     nik: '',
     password: '',
@@ -130,7 +130,7 @@ export default function Register() {
           <CardContent className="space-y-6">
             <div className="text-center">
               {registeredUser.qrCode ? (
-                <QRGenerator value={registeredUser.qrCode} />
+                <QRGenerator value={registeredUser.qrCode} logoSrc={ecotiketLogo} />
               ) : (
                 <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mx-auto">
                   <p className="text-gray-500">QR Code tidak tersedia</p>

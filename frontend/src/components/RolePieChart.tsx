@@ -2,21 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Users } from 'lucide-react';
-
-interface UserRecord {
-  id: number;
-  email?: string;
-  nik?: string;
-  name: string;
-  role: string;
-  phone?: string;
-  address?: string;
-  qr_code: string;
-  tickets_balance: number;
-  points: number;
-  status: string;
-  created_at: string;
-}
+import { UserRecord } from '@/types/dashboard';
 
 interface ChartDataPoint {
   name: string;
@@ -69,7 +55,7 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
       });
 
       const data: ChartDataPoint[] = Object.entries(statusCounts)
-        .filter(([_, count]) => count > 0) 
+        .filter(([_, count]) => count > 0)
         .map(([status, count]) => ({
           name: STATUS_LABELS[status as keyof typeof STATUS_LABELS] || status,
           value: count,
@@ -83,7 +69,7 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
   }, [users, userFilter]);
 
   const getFilterLabel = () => {
-    switch(userFilter) {
+    switch (userFilter) {
       case 'active': return 'Pengguna Aktif';
       case 'inactive': return 'Pengguna Tidak Aktif';
       case 'suspended': return 'Pengguna Suspended';
@@ -118,11 +104,11 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         className="font-semibold text-sm"
       >
@@ -163,8 +149,8 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  verticalAlign="bottom" 
+                <Legend
+                  verticalAlign="bottom"
                   height={36}
                   iconType="circle"
                 />
@@ -182,7 +168,7 @@ export default function RolePieChart({ users, userFilter }: RolePieChartProps) {
               <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p className="text-sm font-medium">Tidak ada data pengguna</p>
               <p className="text-xs text-gray-400 mt-1">
-                {userFilter !== 'all' 
+                {userFilter !== 'all'
                   ? `Tidak ada pengguna dengan status ${STATUS_LABELS[userFilter as keyof typeof STATUS_LABELS]?.toLowerCase()}`
                   : 'Belum ada pengguna terdaftar di sistem'
                 }

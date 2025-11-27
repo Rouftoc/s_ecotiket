@@ -4,41 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileText, Filter, BarChart2, Award, Recycle, User, ChevronLeft, ChevronRight } from 'lucide-react'; 
+import { Download, FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface UserRecord {
-  id: number;
-  email?: string;
-  nik?: string;
-  name: string;
-  role: string;
-  phone?: string;
-  address?: string;
-  qr_code: string;
-  tickets_balance: number;
-  points: number;
-  status: string;
-  created_at: string;
-}
-
-interface Transaction {
-  id: number;
-  user_id: number;
-  petugas_id: number;
-  type: 'bottle_exchange' | 'ticket_usage';
-  description?: string;
-  bottles_count?: number;
-  bottle_type?: string;
-  tickets_change: number;
-  points_earned?: number;
-  location?: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  created_at: string;
-}
+import { UserRecord, Transaction } from '@/types/dashboard';
 
 interface ReportGeneratorProps {
   users: UserRecord[];
@@ -64,7 +35,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
     users.filter(u => u.role === 'petugas')
     , [users]);
 
-  const processedData = useMemo(() => {
+  const processedData = useMemo<any[]>(() => {
     let data: any[] = [];
     const startDate = dateRange.start ? new Date(dateRange.start) : null;
     const endDate = dateRange.end ? new Date(dateRange.end) : null;
@@ -153,7 +124,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
             const type = tx.bottle_type?.toLowerCase();
 
             if (type === 'jumbo' || type === 'besar' || type === 'sedang' || type === 'kecil' || type === 'cup') {
-              dailyTotals[date][type] += count;
+              dailyTotals[date][type as 'jumbo' | 'besar' | 'sedang' | 'kecil' | 'cup'] += count;
             }
 
             dailyTotals[date].total += count;
@@ -173,7 +144,16 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
       case 'user_list':
         return {
           headers: [['ID', 'Nama', 'Role', 'Status', 'Bergabung', 'Tiket', 'Poin', 'Email/NIK']],
-          data: processedData.map((u: UserRecord) => [u.id, u.name, u.role, u.status, new Date(u.created_at).toLocaleDateString('id-ID'), u.tickets_balance, u.points, u.email || u.nik]),
+          data: processedData.map((u: UserRecord) => [
+            u.id,
+            u.name,
+            u.role,
+            u.status,
+            new Date(u.created_at).toLocaleDateString('id-ID'),
+            u.ticketsBalance, 
+            u.points,
+            u.email || u.nik
+          ]),
           filename: 'laporan_pengguna'
         };
       case 'bottle_transactions':
@@ -191,7 +171,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
             tx.userName,
             tx.petugasName,
             tx.location,
-            Math.abs(tx.tickets_change) 
+            Math.abs(tx.tickets_change)
           ]),
           filename: 'laporan_transaksi_tiket'
         };
@@ -225,6 +205,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
         return { headers: [[]], data: [], filename: 'laporan' };
     }
   };
+
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     setLoading(true);
     try {
@@ -283,7 +264,6 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
 
     const config = getExportConfig();
     const headers = config.headers[0];
-
     const paginatedRenderData = config.data.slice(startIndex, endIndex);
 
     return (
@@ -296,10 +276,10 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((item, rowIndex) => (
+              {paginatedItems.map((_, rowIndex) => (
                 <tr key={rowIndex} className="border-b hover:bg-gray-100">
-                  {paginatedRenderData[rowIndex] && Object.values(paginatedRenderData[rowIndex]).map((cell: any, cellIndex) => (
-                    <td key={cellIndex} className="p-2">{cell}</td>
+                  {paginatedRenderData[rowIndex] && Object.values(paginatedRenderData[rowIndex]).map((cell: unknown, cellIndex: number) => (
+                    <td key={cellIndex} className="p-2">{String(cell)}</td>
                   ))}
                 </tr>
               ))}
@@ -346,7 +326,6 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
           <CardDescription>Pilih tipe laporan, atur filter, dan export data dalam format CSV, Excel, atau PDF.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Filters (Tidak ada perubahan) */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-slate-50">
             <div className="space-y-2 lg:col-span-2">
               <Label>Tipe Laporan</Label>

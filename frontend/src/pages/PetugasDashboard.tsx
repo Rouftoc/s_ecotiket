@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
@@ -17,17 +17,19 @@ import {
   CheckCircle,
   AlertCircle,
   History,
-  UserPlus,  
-  Loader2,   
+  UserPlus,
+  Loader2,
   CreditCard,
   Menu,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
-import QRGenerator from '@/components/QRGenerator'; 
-import { transactionsAPI, usersAPI, authAPI } from '@/lib/api'; 
+import QRGenerator from '@/components/QRGenerator';
+import ecotiketLogo from '@/assets/logo-eco.png';
+import { transactionsAPI, usersAPI, authAPI } from '@/lib/api';
 
 interface User {
   email: string;
@@ -73,7 +75,7 @@ interface RegisteredUser {
   role: string;
   phone?: string;
   address?: string;
-  qrCode: string; 
+  qrCode: string;
   ticketsBalance: number;
   points: number;
   status: string;
@@ -445,11 +447,10 @@ export default function PetugasDashboard() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
-                      activeTab === tab.id
-                        ? 'border-green-600 text-green-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${activeTab === tab.id
+                      ? 'border-green-600 text-green-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -473,7 +474,7 @@ export default function PetugasDashboard() {
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
-          
+
           {mobileMenuOpen && (
             <div className="border-t px-4 py-2 space-y-1 bg-gray-50">
               {[
@@ -489,11 +490,10 @@ export default function PetugasDashboard() {
                       setActiveTab(tab.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-green-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-200'
-                    }`}
+                    className={`w-full text-left px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id
+                      ? 'bg-green-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-200'
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -596,9 +596,9 @@ export default function PetugasDashboard() {
                                 type="number"
                                 min="0"
                                 value={bottleCount[bottle.key as keyof typeof bottleCount]}
-                                onChange={(e) => setBottleCount({ 
-                                  ...bottleCount, 
-                                  [bottle.key]: parseInt(e.target.value) || 0 
+                                onChange={(e) => setBottleCount({
+                                  ...bottleCount,
+                                  [bottle.key]: parseInt(e.target.value) || 0
                                 })}
                                 className="text-sm h-8 sm:h-10"
                               />
@@ -693,8 +693,8 @@ export default function PetugasDashboard() {
                         <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-4 border rounded-lg gap-2">
                           <div className="flex items-start space-x-3 flex-1">
                             <div className={`p-2 rounded-full flex-shrink-0 ${transaction.type === 'stand'
-                                ? 'bg-green-100 text-green-600'
-                                : 'bg-blue-100 text-blue-600'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-blue-100 text-blue-600'
                               }`}>
                               {transaction.type === 'stand' ? <Recycle className="h-4 w-4" /> : <Bus className="h-4 w-4" />}
                             </div>
@@ -809,11 +809,40 @@ function RegisterPassengerForm() {
   const [error, setError] = useState('');
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
 
+  // --- PERUBAHAN 1: Buat ref untuk menampung elemen QR Code ---
+  const qrCodeRef = useRef<HTMLDivElement | null>(null);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
     if (registeredUser) setRegisteredUser(null);
   };
+
+  // --- PERUBAHAN 2: Buat fungsi untuk mengunduh QR Code ---
+  const handleDownloadQRCode = () => {
+    // Pastikan ref terpasang dan ada data pengguna
+    if (qrCodeRef.current && registeredUser) {
+      // Cari elemen <canvas> di dalam ref
+      const canvas = qrCodeRef.current.querySelector('canvas');
+      if (canvas) {
+        // Buat elemen <a> sementara
+        const link = document.createElement('a');
+        // Ubah canvas menjadi data URL (gambar PNG)
+        link.href = canvas.toDataURL('image/png');
+        // Buat nama file yang unik dan aman
+        const fileName = `QR_Code_${registeredUser.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+        link.download = fileName;
+        // Klik link secara programatis untuk memulai unduhan
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('QR Code berhasil diunduh!');
+      } else {
+        toast.error('Gagal menemukan elemen QR Code untuk diunduh.');
+      }
+    }
+  };
+
 
   const validateForm = () => {
     if (!formData.name || !formData.password || !formData.nik) {
@@ -889,17 +918,27 @@ function RegisterPassengerForm() {
           <p className="text-xs sm:text-sm">Nama: <span className="font-medium block mt-1">{registeredUser.name}</span></p>
           <p className="text-xs sm:text-sm mt-2">NIK: <span className="font-medium block mt-1">{registeredUser.nik}</span></p>
         </div>
-        
-        {registeredUser.qrCode ? (
-           <QRGenerator value={registeredUser.qrCode} />
-        ) : (
-          <p className="text-red-500 text-xs sm:text-sm">Gagal memuat QR Code.</p>
-        )}
-       
+
+        {/* --- PERUBAHAN 3: Lampirkan ref ke div pembungkus QRGenerator --- */}
+        <div ref={qrCodeRef} className="p-2 bg-white border rounded-lg">
+          {registeredUser.qrCode ? (
+            <QRGenerator value={registeredUser.qrCode} logoSrc={ecotiketLogo} />
+          ) : (
+            <p className="text-red-500 text-xs sm:text-sm">Gagal memuat QR Code.</p>
+          )}
+        </div>
+
         <p className="text-xs text-gray-600 break-all">
           QR Code: <span className="font-mono bg-gray-100 p-1 rounded text-xs">{registeredUser.qrCode}</span>
         </p>
         <p className="text-xs text-gray-500">Minta penumpang untuk menyimpan QR Code ini.</p>
+
+        {/* --- PERUBAHAN 4: Tambahkan tombol Unduh --- */}
+        <Button onClick={handleDownloadQRCode} variant="outline" className="w-full text-sm">
+          <Download className="h-4 w-4 mr-2" />
+          Unduh QR Code
+        </Button>
+
         <Button onClick={() => setRegisteredUser(null)} className="w-full text-sm">
           <UserPlus className="h-4 w-4 mr-2" />
           Daftarkan Lagi
@@ -912,73 +951,73 @@ function RegisterPassengerForm() {
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
       <div className="space-y-1 sm:space-y-2">
         <Label htmlFor="reg-name" className="text-xs sm:text-sm">Nama Lengkap *</Label>
-        <Input 
-          id="reg-name" 
-          value={formData.name} 
-          onChange={(e) => handleInputChange('name', e.target.value)} 
-          placeholder="Masukkan nama lengkap" 
+        <Input
+          id="reg-name"
+          value={formData.name}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          placeholder="Masukkan nama lengkap"
           className="text-sm h-8 sm:h-10"
-          required 
+          required
         />
       </div>
       <div className="space-y-1 sm:space-y-2">
         <Label htmlFor="reg-nik" className="text-xs sm:text-sm flex items-center gap-2">
           <CreditCard className="h-4 w-4" /> NIK (16 digit) *
         </Label>
-        <Input 
-          id="reg-nik" 
-          value={formData.nik} 
-          onChange={(e) => handleInputChange('nik', e.target.value.replace(/\D/g, ''))} 
-          maxLength={16} 
-          placeholder="1234567890123456" 
+        <Input
+          id="reg-nik"
+          value={formData.nik}
+          onChange={(e) => handleInputChange('nik', e.target.value.replace(/\D/g, ''))}
+          maxLength={16}
+          placeholder="1234567890123456"
           className="text-sm h-8 sm:h-10"
-          required 
+          required
         />
       </div>
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <div className="space-y-1 sm:space-y-2">
           <Label htmlFor="reg-password" className="text-xs sm:text-sm">Password *</Label>
-          <Input 
-            id="reg-password" 
-            type="password" 
-            value={formData.password} 
-            onChange={(e) => handleInputChange('password', e.target.value)} 
-            placeholder="Min 6 kar" 
+          <Input
+            id="reg-password"
+            type="password"
+            value={formData.password}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            placeholder="Min 6 kar"
             className="text-sm h-8 sm:h-10"
-            required 
+            required
           />
         </div>
         <div className="space-y-1 sm:space-y-2">
           <Label htmlFor="reg-confirmPassword" className="text-xs sm:text-sm">Konfirmasi *</Label>
-          <Input 
-            id="reg-confirmPassword" 
-            type="password" 
-            value={formData.confirmPassword} 
-            onChange={(e) => handleInputChange('confirmPassword', e.target.value)} 
-            placeholder="Ulangi pass" 
+          <Input
+            id="reg-confirmPassword"
+            type="password"
+            value={formData.confirmPassword}
+            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            placeholder="Ulangi pass"
             className="text-sm h-8 sm:h-10"
-            required 
+            required
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <div className="space-y-1 sm:space-y-2">
           <Label htmlFor="reg-phone" className="text-xs sm:text-sm">No. Telp</Label>
-          <Input 
-            id="reg-phone" 
-            value={formData.phone} 
-            onChange={(e) => handleInputChange('phone', e.target.value)} 
-            placeholder="0812..." 
+          <Input
+            id="reg-phone"
+            value={formData.phone}
+            onChange={(e) => handleInputChange('phone', e.target.value)}
+            placeholder="0812..."
             className="text-sm h-8 sm:h-10"
           />
         </div>
         <div className="space-y-1 sm:space-y-2">
           <Label htmlFor="reg-address" className="text-xs sm:text-sm">Alamat</Label>
-          <Input 
-            id="reg-address" 
-            value={formData.address} 
-            onChange={(e) => handleInputChange('address', e.target.value)} 
-            placeholder="Alamat" 
+          <Input
+            id="reg-address"
+            value={formData.address}
+            onChange={(e) => handleInputChange('address', e.target.value)}
+            placeholder="Alamat"
             className="text-sm h-8 sm:h-10"
           />
         </div>

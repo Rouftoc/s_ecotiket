@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,11 +24,13 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QRGenerator from '@/components/QRGenerator';
 import { usersAPI, transactionsAPI } from '@/lib/api';
+import ecotiketLogo from '@/assets/logo-eco.png';
 
 interface Transaction {
   id: number;
@@ -64,6 +66,7 @@ interface UserData {
 
 export default function PenumpangDashboard() {
   const navigate = useNavigate();
+  const qrRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<UserData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,24 +101,23 @@ export default function PenumpangDashboard() {
   }, [navigate]);
 
   const loadTransactions = async (userId: number) => {
-  setLoading(true);
-  try {
-    const response = await transactionsAPI.getUserTransactions(userId);
-    if (Array.isArray(response.transactions)) {
-      setTransactions(response.transactions);
-    } else {
-      console.warn("Tidak ada data transaksi atau API mengembalikan pesan:", response.transactions);
-      setTransactions([]); // Atur state menjadi array kosong
+    setLoading(true);
+    try {
+      const response = await transactionsAPI.getUserTransactions(userId);
+      if (Array.isArray(response.transactions)) {
+        setTransactions(response.transactions);
+      } else {
+        console.warn("Tidak ada data transaksi atau API mengembalikan pesan:", response.transactions);
+        setTransactions([]);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Gagal memuat riwayat transaksi: " + errorMessage);
+      setTransactions([]); 
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    toast.error("Gagal memuat riwayat transaksi: " + errorMessage);
-    setTransactions([]); 
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -139,6 +141,30 @@ export default function PenumpangDashboard() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Gagal memperbarui profil: ' + errorMessage);
+    }
+  };
+
+  const handleDownloadQR = async () => {
+    if (!qrRef.current) return;
+
+    try {
+      const canvas = qrRef.current.querySelector('canvas');
+      if (!canvas) {
+        toast.error('QR Code tidak ditemukan');
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `qr-code-${user?.name || 'penumpang'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('QR Code berhasil diunduh');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Gagal mengunduh QR Code: ' + errorMessage);
     }
   };
 
@@ -248,13 +274,16 @@ export default function PenumpangDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col items-center space-y-4">
-                <QRGenerator value={user.qrCode} />
-                <div className="text-center">
-                  <p className="text-sm font-mono text-gray-600">{user.qrCode}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Simpan screenshot QR Code ini untuk backup
-                  </p>
-                </div>
+                <div ref={qrRef}>
+                  <QRGenerator
+                    value={user.qrCode}
+                    logoSrc={ecotiketLogo} 
+                  />
+                </div>
+                <Button onClick={handleDownloadQR} className="w-full sm:w-auto">
+                  <Download className="h-4 w-4 mr-2" />
+                  Unduh QR Code
+                </Button>
                 <Alert>
                   <AlertDescription>
                     <strong>Tips:</strong> Pastikan QR Code terlihat jelas dan tidak rusak saat melakukan transaksi.
