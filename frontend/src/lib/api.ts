@@ -48,6 +48,7 @@ interface ApiResponse<T = unknown> {
   points_earned?: number;
   total?: number;
   filtered?: boolean;
+  deletedTransaction?: Transaction;
   [key: string]: unknown;
 }
 
@@ -534,6 +535,25 @@ export const transactionsAPI = {
         transactions: [],
         error: error instanceof Error ? error.message : 'Unknown error'
       };
+    }
+  },
+
+  async deleteTransaction(id: number): Promise<ApiResponse> {
+    try {
+      console.log('Deleting transaction:', id);
+      
+      const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        method: 'DELETE',
+        headers: createHeaders()
+      });
+      
+      const result = await handleResponse(response);
+      console.log('Transaction deleted:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
     }
   }
 };

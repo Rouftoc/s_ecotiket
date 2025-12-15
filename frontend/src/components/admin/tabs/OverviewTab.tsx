@@ -13,7 +13,6 @@ interface OverviewTabProps {
     transactions: Transaction[];
     users: UserRecord[];
 
-    // Filter States
     statsFilter: string;
     setStatsFilter: (val: string) => void;
     userFilter: string;

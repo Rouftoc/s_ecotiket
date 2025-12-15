@@ -2,11 +2,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Edit, Trash2, Mail, Phone, QrCode } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Mail, Phone, QrCode, BarChart3, Clock } from 'lucide-react';
 import QRGenerator from '@/components/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
 import { PetugasDetail, Transaction } from '@/types/dashboard';
+import { transactionsAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface PetugasDetailViewProps {
     petugas: PetugasDetail;
@@ -15,6 +17,8 @@ interface PetugasDetailViewProps {
     onBack: () => void;
     onEdit: (petugas: PetugasDetail) => void;
     onDelete: (id: number) => void;
+    currentUserRole?: string;
+    onTransactionDeleted?: () => void;
 }
 
 export function PetugasDetailView({
@@ -23,8 +27,23 @@ export function PetugasDetailView({
     isTransactionsLoading,
     onBack,
     onEdit,
-    onDelete
+    onDelete,
+    currentUserRole,
+    onTransactionDeleted
 }: PetugasDetailViewProps) {
+
+    const handleDeleteTransaction = async (transactionId: number) => {
+        try {
+            await transactionsAPI.deleteTransaction(transactionId);
+            toast.success('Transaksi berhasil dihapus');
+            if (onTransactionDeleted) {
+                onTransactionDeleted();
+            }
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            throw error;
+        }
+    };
 
     const formatDate = (dateString: string) => {
         try {
@@ -43,6 +62,9 @@ export function PetugasDetailView({
     const getRoleColor = (role: string) => role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
     const getStatusColor = (status: string) => status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
 
+    const bottleExchangeCount = transactions.filter(t => t.type === 'bottle_exchange').length;
+    const ticketUsageCount = transactions.filter(t => t.type === 'ticket_usage').length;
+
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="bg-white shadow-sm border-b p-4 sticky top-0 z-10">
@@ -51,12 +73,17 @@ export function PetugasDetailView({
                         <ArrowLeft className="h-5 w-5 mr-2" />
                         Kembali ke Manajemen Petugas
                     </Button>
+                    <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => onEdit(petugas)}>
+                            <Edit className="h-4 w-4 mr-2" />Edit Petugas
+                        </Button>
+                    </div>
                 </div>
             </div>
             <div className="p-6">
                 <div className="max-w-7xl mx-auto space-y-6">
                     <div className="grid lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
+                        <div className="lg:col-span-2 space-y-6">
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center space-x-4">
@@ -90,44 +117,85 @@ export function PetugasDetailView({
                                         <p className="text-sm pt-1">{formatDate(petugas.created_at)}</p>
                                     </div>
                                     <div>
-                                        <Label className="text-sm font-medium text-gray-500">Aktivitas Terakhir</Label>
+                                        <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                                            <Clock className="h-4 w-4" />Aktivitas Terakhir
+                                        </Label>
                                         <p className="text-sm pt-1">{petugas.last_activity ? formatDateTime(petugas.last_activity) : 'Belum ada aktivitas'}</p>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </div>
-                        <div className="space-y-6">
+
                             <Card>
-                                <CardHeader><CardTitle>Statistik Petugas</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center">
+                                        <BarChart3 className="h-5 w-5 mr-2" />
+                                        Statistik Petugas
+                                    </CardTitle>
+                                    <CardDescription>Ringkasan aktivitas dan transaksi yang diverifikasi</CardDescription>
+                                </CardHeader>
                                 <CardContent>
-                                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                        <div className="text-3xl font-bold text-blue-600">{petugas.total_transactions || 0}</div>
-                                        <div className="text-sm text-gray-600 mt-1">Total Transaksi Diverifikasi</div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="text-center p-6 bg-blue-50 rounded-lg">
+                                            <div className="text-3xl font-bold text-blue-600">{petugas.total_transactions || 0}</div>
+                                            <div className="text-xs text-gray-600 mt-2">Total Transaksi</div>
+                                        </div>
+                                        <div className="text-center p-6 bg-green-50 rounded-lg">
+                                            <div className="text-3xl font-bold text-green-600">{bottleExchangeCount}</div>
+                                            <div className="text-xs text-gray-600 mt-2">Penukaran Botol</div>
+                                        </div>
+                                        <div className="text-center p-6 bg-purple-50 rounded-lg">
+                                            <div className="text-3xl font-bold text-purple-600">{ticketUsageCount}</div>
+                                            <div className="text-xs text-gray-600 mt-2">Penggunaan Tiket</div>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        <div className="space-y-6">
                             <Card>
-                                <CardHeader><CardTitle className="flex items-center"><QrCode className="h-5 w-5 mr-2" />QR Code Petugas</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center">
+                                        <QrCode className="h-5 w-5 mr-2" />QR Code Petugas
+                                    </CardTitle>
+                                    <CardDescription>QR Code unik untuk verifikasi</CardDescription>
+                                </CardHeader>
                                 <CardContent className="text-center space-y-4">
                                     {petugas.qrCode ? (
                                         <>
                                             <QRGenerator value={petugas.qrCode} logoSrc={ecotiketLogo} />
-                                            <div className="p-3 bg-gray-100 rounded-lg">
-                                                <p className="text-sm font-mono text-gray-700 break-all">{petugas.qrCode}</p>
+                                            <div className="p-3 bg-gray-50 rounded-lg">
+                                                <p className="text-xs font-mono text-gray-700 break-all">{petugas.qrCode}</p>
                                             </div>
                                         </>
                                     ) : (
-                                        <p className="text-sm text-gray-500 py-4">QR Code tidak tersedia.</p>
+                                        <div className="py-8 text-center">
+                                            <QrCode className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                                            <p className="text-sm text-gray-500">QR Code tidak tersedia</p>
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Status Akun</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                                        <div className="text-2xl font-bold text-blue-600 capitalize">{petugas.status}</div>
+                                        <div className="text-sm text-gray-600 mt-1">Status Petugas</div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
                             <Card>
                                 <CardHeader><CardTitle>Aksi</CardTitle></CardHeader>
                                 <CardContent className="space-y-2">
-                                    <Button variant="outline" className="w-full" onClick={() => onEdit(petugas)}>
+                                    <Button variant="outline" className="w-full hover:bg-blue-50" onClick={() => onEdit(petugas)}>
                                         <Edit className="h-4 w-4 mr-2" />Edit Petugas
                                     </Button>
-                                    <Button variant="destructive" className="w-full" onClick={() => onDelete(petugas.id)}>
+                                    <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(petugas.id)}>
                                         <Trash2 className="h-4 w-4 mr-2" />Hapus Petugas
                                     </Button>
                                 </CardContent>
@@ -138,13 +206,15 @@ export function PetugasDetailView({
                     <Card>
                         <CardHeader>
                             <CardTitle>Riwayat Transaksi Petugas</CardTitle>
-                            <CardDescription>Menampilkan semua transaksi yang telah diverifikasi oleh petugas ini.</CardDescription>
+                            <CardDescription>Menampilkan semua transaksi yang telah diverifikasi oleh petugas ini</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <UserTransactionHistory
                                 transactions={transactions}
                                 isLoading={isTransactionsLoading}
                                 role={petugas.role}
+                                currentUserRole={currentUserRole}
+                                onDeleteTransaction={currentUserRole === 'admin' ? handleDeleteTransaction : undefined}
                             />
                         </CardContent>
                     </Card>

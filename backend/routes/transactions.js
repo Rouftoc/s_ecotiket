@@ -132,6 +132,7 @@ router.post('/ticket-usage', authenticateToken, requireRole(['petugas']), async 
           user.id,
           petugasId,
           'ticket_usage',
+          'ticket_usage',
           `Menggunakan ${ticketCount} tiket untuk transportasi`,
           -ticketCount,
           location
@@ -244,6 +245,57 @@ router.get('/', authenticateToken, requireRole(['admin', 'petugas']), async (req
   } catch (error) {
     console.error('Get transactions error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const transactionId = parseInt(req.params.id, 10);
+
+    const [transactions] = await connection.execute(
+      'SELECT * FROM transactions WHERE id = ?',
+      [transactionId]
+    );
+
+    if (transactions.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    const transaction = transactions[0];
+
+    if (transaction.type === 'bottle_exchange') {
+      await connection.execute(
+        'UPDATE users SET tickets_balance = tickets_balance - ?, points = points - ? WHERE id = ?',
+        [transaction.tickets_change, transaction.points_earned || 0, transaction.user_id]
+      );
+    } 
+    else if (transaction.type === 'ticket_usage') {
+    }
+    await connection.execute(
+      'DELETE FROM transactions WHERE id = ?',
+      [transactionId]
+    );
+
+    await connection.commit();
+
+    res.json({
+      message: 'Transaction deleted successfully',
+      deletedTransaction: transaction
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Delete transaction error:', error);
+    res.status(500).json({
+      error: 'Internal server error during transaction deletion',
+      message: error.message
+    });
+  } finally {
+    if (connection) connection.release();
   }
 });
 

@@ -7,7 +7,6 @@ import {
   LogOut, Menu, X, User
 } from 'lucide-react';
 
-// UI Components
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,7 +14,6 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
-// Custom Components (Pecahan)
 import { OverviewTab } from '@/components/admin/tabs/OverviewTab';
 import { UsersTab } from '@/components/admin/tabs/UsersTab';
 import { LocationsTab } from '@/components/admin/tabs/LocationsTab';
@@ -26,21 +24,17 @@ import { LocationForm } from '@/components/admin/forms/LocationForm';
 import { EditUserDialog } from '@/components/admin/forms/EditUserDialog';
 import { EditProfileDialog } from '@/components/admin/forms/EditProfileDialog';
 
-// Legacy/Existing Components
 import ReportGenerator from '@/components/ReportGenerator';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
 
-// API & Types
 import { usersAPI, transactionsAPI, authAPI, locationsAPI } from '@/lib/api';
 import {
   UserRecord, Transaction, Location,
   DashboardStats, BottleStats, PetugasDetail, CurrentUser
 } from '@/types/dashboard';
 
-// Dialog Wrapper Helper
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-// ================= HARDCODED LOCATIONS DATA =================
 const hardcodedLocations: Location[] = [
   {
     id: 1,
@@ -165,44 +159,34 @@ const hardcodedLocations: Location[] = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
-  // ================= STATE MANAGEMENT =================
-
-  // Auth & UI State
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
-  // Data State
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Detail Views State
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [selectedPetugas, setSelectedPetugas] = useState<PetugasDetail | null>(null);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
 
-  // Filter State
   const [userFilters, setUserFilters] = useState({ search: '', role: 'all', status: 'all' });
   const [statsFilter, setStatsFilter] = useState('all');
   const [userPieFilter, setUserPieFilter] = useState('all');
 
-  // Stats State
   const [bottleStats, setBottleStats] = useState<BottleStats>({ kecil: 0, sedang: 0, jumbo: 0, besar: 0, cup: 0, total: 0 });
   const [growthRate, setGrowthRate] = useState(0);
   const [growthLoading, setGrowthLoading] = useState(false);
 
-  // Modal/Dialog State
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isAddingLocation, setIsAddingLocation] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isProfileUpdating, setIsProfileUpdating] = useState(false);
-
-  // ================= DATA LOADING =================
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -223,11 +207,10 @@ export default function AdminDashboard() {
     }
   }, [navigate]);
 
-  const loadInitialData = async () => {
+const loadInitialData = async () => {
     setLoading(true);
-    await Promise.all([loadUsers(), loadLocations(), loadTransactions()]);
+    await Promise.all([loadUsers(), loadLocations(), loadTransactions()]); 
     setLoading(false);
-    calculateGrowthRate();
   };
 
   const loadUsers = async () => {
@@ -237,7 +220,6 @@ export default function AdminDashboard() {
         status: userFilters.status !== 'all' ? userFilters.status : undefined,
         search: userFilters.search || undefined
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setUsers((response.users as any[]) || []);
     } catch (error) {
       toast.error('Gagal memuat data pengguna');
@@ -247,11 +229,8 @@ export default function AdminDashboard() {
   const loadLocations = async () => {
     try {
       const response = await locationsAPI.getAllLocations();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiLocations = (response.locations as any[]) || [];
 
-      // Merge API locations with hardcoded locations
-      // Use hardcoded locations as fallback if API fails or returns empty
       if (apiLocations.length > 0) {
         setLocations(apiLocations);
       } else {
@@ -259,7 +238,6 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to load locations from API, using hardcoded data:', error);
-      // Fallback to hardcoded locations if API fails
       setLocations(hardcodedLocations);
     }
   };
@@ -268,6 +246,7 @@ export default function AdminDashboard() {
     try {
       let dateFilters = {};
       const now = new Date();
+      
       if (statsFilter === 'today') {
         const today = now.toISOString().split('T')[0];
         dateFilters = { startDate: today, endDate: today };
@@ -282,27 +261,25 @@ export default function AdminDashboard() {
       }
 
       const response = await transactionsAPI.getAllTransactions(dateFilters);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const txData = (response.transactions as any[]) || [];
+      
       setTransactions(txData);
-      calculateBottleStats(txData);
+      calculateBottleStats(txData);      
+      calculateGrowthRate(txData); 
+      
     } catch (error) {
       console.error(error);
     }
   };
 
-  // Debounce filter effect
   useEffect(() => {
     const timer = setTimeout(() => loadUsers(), 500);
     return () => clearTimeout(timer);
   }, [userFilters]);
 
-  // Refetch transactions when stats filter changes
   useEffect(() => {
     loadTransactions();
   }, [statsFilter]);
-
-  // ================= HELPERS & CALCULATIONS =================
 
   const calculateBottleStats = (txData: Transaction[]) => {
     const stats = { kecil: 0, sedang: 0, jumbo: 0, besar: 0, cup: 0, total: 0 };
@@ -319,16 +296,42 @@ export default function AdminDashboard() {
     setBottleStats(stats);
   };
 
-  const calculateGrowthRate = async () => {
-    setGrowthLoading(true);
-    try {
-      setGrowthRate(12.5);
-    } catch {
-      setGrowthRate(0);
-    } finally {
-      setGrowthLoading(false);
+const calculateGrowthRate = (txData: Transaction[]) => {
+  setGrowthLoading(true);
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); 
+
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthYear = lastMonthDate.getFullYear();
+    const lastMonth = lastMonthDate.getMonth();
+
+    const currentMonthCount = txData.filter(t => {
+      const tDate = new Date(t.created_at);
+      return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+    }).length;
+
+    const lastMonthCount = txData.filter(t => {
+      const tDate = new Date(t.created_at);
+      return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
+    }).length;
+
+    let rate = 0;
+    if (lastMonthCount > 0) {
+      rate = ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100;
+    } else if (currentMonthCount > 0) {
+      rate = 100;
     }
-  };
+
+    setGrowthRate(parseFloat(rate.toFixed(1))); 
+  } catch (error) {
+    console.error("Gagal menghitung growth rate:", error);
+    setGrowthRate(0);
+  } finally {
+    setGrowthLoading(false);
+  }
+};
 
   const dashboardStats: DashboardStats = {
     totalUsers: users.length,
@@ -347,7 +350,6 @@ export default function AdminDashboard() {
     setIsTransactionsLoading(true);
     try {
       const response = await transactionsAPI.getTransactionsByUserId(userId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setUserTransactions((response.transactions as any[]) || []);
     } catch (error) {
       toast.error('Gagal memuat riwayat transaksi');
@@ -357,7 +359,16 @@ export default function AdminDashboard() {
     }
   };
 
-  // ================= EVENT HANDLERS =================
+  const handleTransactionDeleted = () => {
+    if (selectedUser) {
+      loadUserTransactions(selectedUser.id);
+    }
+    if (selectedPetugas) {
+      loadUserTransactions(selectedPetugas.id);
+    }
+    loadTransactions();
+    loadUsers();
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -365,7 +376,6 @@ export default function AdminDashboard() {
     navigate('/');
   };
 
-  // User Handlers
   const handleAddUser = async (data: any) => {
     try {
       await authAPI.register(data);
@@ -373,7 +383,6 @@ export default function AdminDashboard() {
       setIsAddingUser(false);
       loadUsers();
     } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       toast.error((error as any).message || 'Gagal menambahkan pengguna');
     }
   };
@@ -404,10 +413,8 @@ export default function AdminDashboard() {
     }
   };
 
-  // Location Handlers
   const handleAddLocation = async (data: Omit<Location, 'id'>) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await locationsAPI.createLocation(data as any);
       toast.success('Lokasi ditambahkan');
       setIsAddingLocation(false);
@@ -419,7 +426,6 @@ export default function AdminDashboard() {
 
   const handleUpdateLocation = async (data: Location) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await locationsAPI.updateLocation(data.id, data as any);
       toast.success('Lokasi diupdate');
       setEditingLocation(null);
@@ -441,7 +447,6 @@ export default function AdminDashboard() {
     });
   };
 
-  // View Handlers
   const handleViewUser = (user: UserRecord) => {
     if (user.role === 'petugas') {
       const petugasDetail: PetugasDetail = { ...user, total_transactions: 0, last_activity: undefined };
@@ -451,8 +456,6 @@ export default function AdminDashboard() {
     }
     loadUserTransactions(user.id);
   };
-
-  // ================= RENDER =================
 
   if (!currentUser) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
@@ -465,7 +468,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* SIDEBAR */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex items-center justify-between h-16 px-6 border-b">
           <img src={logoEcoTiket} alt="Logo" className="h-12 w-25" />
@@ -485,7 +487,6 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
-        {/* User Dropdown Bottom */}
         <div className="absolute bottom-0 w-full p-4 border-t">
           <DropdownMenu>
             <DropdownMenuTrigger className="w-full p-2 rounded-md hover:bg-gray-100 flex items-center space-x-3">
@@ -506,16 +507,12 @@ export default function AdminDashboard() {
           </DropdownMenu>
         </div>
       </div>
-
-      {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* HEADER MOBILE */}
         <header className="bg-white shadow-sm border-b lg:hidden px-4 py-4 flex justify-between items-center">
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)}><Menu className="h-5 w-5" /></Button>
           <Badge>Admin</Badge>
         </header>
 
-        {/* HEADER DESKTOP */}
         <header className="hidden lg:flex bg-white shadow-sm border-b px-6 py-4 justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-900 capitalize">
             {selectedUser ? 'Detail Pengguna' : selectedPetugas ? 'Detail Petugas' : activeTab}
@@ -523,7 +520,6 @@ export default function AdminDashboard() {
           <Badge>Administrator</Badge>
         </header>
 
-        {/* CONTENT AREA */}
         <main className="flex-1 overflow-y-auto">
           {selectedUser ? (
             <UserDetailView
@@ -533,6 +529,8 @@ export default function AdminDashboard() {
               onBack={() => setSelectedUser(null)}
               onDelete={handleDeleteUser}
               onUpdate={handleUpdateUser}
+              currentUserRole={currentUser.role}
+              onTransactionDeleted={handleTransactionDeleted}
             />
           ) : selectedPetugas ? (
             <PetugasDetailView
@@ -540,9 +538,10 @@ export default function AdminDashboard() {
               transactions={userTransactions}
               isTransactionsLoading={isTransactionsLoading}
               onBack={() => setSelectedPetugas(null)}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onEdit={(p) => setEditingUser(p as any)}
               onDelete={handleDeleteUser}
+              currentUserRole={currentUser.role}
+              onTransactionDeleted={handleTransactionDeleted}
             />
           ) : (
             <div className="p-6">
@@ -589,7 +588,6 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* MODALS & DIALOGS */}
       {isAddingUser && <Dialog open={isAddingUser} onOpenChange={setIsAddingUser}><DialogContent><DialogHeader><DialogTitle>Tambah Pengguna</DialogTitle><DialogDescription>Isi form berikut.</DialogDescription></DialogHeader><AddUserForm onSubmit={handleAddUser} onCancel={() => setIsAddingUser(false)} /></DialogContent></Dialog>}
 
       {isAddingLocation && <Dialog open={isAddingLocation} onOpenChange={setIsAddingLocation}><DialogContent><DialogHeader><DialogTitle>Tambah Lokasi</DialogTitle></DialogHeader><LocationForm onSubmit={handleAddLocation} onCancel={() => setIsAddingLocation(false)} /></DialogContent></Dialog>}

@@ -10,6 +10,8 @@ import QRGenerator from '@/components/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
 import { UserRecord, Transaction } from '@/types/dashboard';
+import { transactionsAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface UserDetailViewProps {
     user: UserRecord;
@@ -18,6 +20,8 @@ interface UserDetailViewProps {
     onBack: () => void;
     onDelete: (id: number) => void;
     onUpdate: (id: number, data: Partial<UserRecord>) => Promise<void>;
+    currentUserRole?: string;
+    onTransactionDeleted?: () => void;
 }
 
 export function UserDetailView({
@@ -26,7 +30,9 @@ export function UserDetailView({
     isTransactionsLoading,
     onBack,
     onDelete,
-    onUpdate
+    onUpdate,
+    currentUserRole,
+    onTransactionDeleted
 }: UserDetailViewProps) {
     const [user, setUser] = useState(initialUser);
     const [isEditing, setIsEditing] = useState(false);
@@ -34,6 +40,19 @@ export function UserDetailView({
     const handleSave = async () => {
         await onUpdate(user.id, user);
         setIsEditing(false);
+    };
+
+    const handleDeleteTransaction = async (transactionId: number) => {
+        try {
+            await transactionsAPI.deleteTransaction(transactionId);
+            toast.success('Transaksi berhasil dihapus');
+            if (onTransactionDeleted) {
+                onTransactionDeleted();
+            }
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            throw error;
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -81,7 +100,7 @@ export function UserDetailView({
                 </div>
             </div>
             <div className="p-6">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     <div className="grid lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
                             <Card>
@@ -176,31 +195,26 @@ export function UserDetailView({
                                     )}
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader><CardTitle>Statistik</CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        {user.role === 'penumpang' ? (
-                                            <>
-                                                <div className="text-center p-4 bg-green-50 rounded-lg">
-                                                    <div className="text-2xl font-bold text-green-600">{user.ticketsBalance}</div>
-                                                    <div className="text-sm text-gray-600">Saldo Tiket</div>
-                                                </div>
-                                                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                                    <div className="text-2xl font-bold text-blue-600">{user.points}</div>
-                                                    <div className="text-sm text-gray-600">Total Poin</div>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                                <div className="text-2xl font-bold text-blue-600">Aktif</div>
-                                                <div className="text-sm text-gray-600">Status {user.role}</div>
+
+                            {user.role === 'penumpang' && (
+                                <Card>
+                                    <CardHeader><CardTitle>Statistik</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-center p-6 bg-green-50 rounded-lg">
+                                                <div className="text-3xl font-bold text-green-600">{user.ticketsBalance}</div>
+                                                <div className="text-sm text-gray-600 mt-1">Saldo Tiket</div>
                                             </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                            <div className="text-center p-6 bg-blue-50 rounded-lg">
+                                                <div className="text-3xl font-bold text-blue-600">{user.points}</div>
+                                                <div className="text-sm text-gray-600 mt-1">Total Poin</div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
+
                         <div className="space-y-6">
                             <Card>
                                 <CardHeader>
@@ -210,26 +224,46 @@ export function UserDetailView({
                                 <CardContent className="text-center space-y-4">
                                     {user.qrCode && <QRGenerator value={user.qrCode} logoSrc={ecotiketLogo} />}
                                     <div className="p-3 bg-gray-50 rounded-lg">
-                                        <p className="text-sm font-mono text-gray-700">{user.qrCode}</p>
+                                        <p className="text-xs font-mono text-gray-700 break-all">{user.qrCode}</p>
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            {user.role !== 'penumpang' && (
+                                <Card>
+                                    <CardHeader><CardTitle>Status</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <div className="text-center p-6 bg-blue-50 rounded-lg">
+                                            <div className="text-2xl font-bold text-blue-600 capitalize">{user.status}</div>
+                                            <div className="text-sm text-gray-600 mt-1">Status {user.role}</div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             <Card>
                                 <CardHeader><CardTitle>Aksi</CardTitle></CardHeader>
                                 <CardContent className="space-y-2">
-                                    <Button variant="outline" className="w-full text-red-600 hover:text-red-700" onClick={() => onDelete(user.id)}>
+                                    <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(user.id)}>
                                         <Trash2 className="h-4 w-4 mr-2" />Hapus Pengguna
                                     </Button>
                                 </CardContent>
                             </Card>
                         </div>
                     </div>
-                    <div className="pt-6 border-t">
-                        <UserTransactionHistory
-                            transactions={transactions}
-                            isLoading={isTransactionsLoading}
-                            role={user.role}
-                        />
+
+                    <div className="mt-6">
+                        <Card>
+                            <CardContent className="p-6">
+                                <UserTransactionHistory
+                                    transactions={transactions}
+                                    isLoading={isTransactionsLoading}
+                                    role={user.role}
+                                    currentUserRole={currentUserRole}
+                                    onDeleteTransaction={currentUserRole === 'admin' ? handleDeleteTransaction : undefined}
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
