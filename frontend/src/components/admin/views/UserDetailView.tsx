@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Edit, Save, Trash2, User, CreditCard, Mail, Phone, QrCode } from 'lucide-react';
+// Tambahkan 'Download' ke import lucide-react
+import { ArrowLeft, Edit, Save, Trash2, User, CreditCard, Mail, Phone, QrCode, Download } from 'lucide-react';
 import QRGenerator from '@/components/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
@@ -52,6 +53,36 @@ export function UserDetailView({
         } catch (error) {
             console.error('Error deleting transaction:', error);
             throw error;
+        }
+    };
+
+    // --- FUNGSI BARU UNTUK DOWNLOAD QR ---
+    const handleDownloadQR = () => {
+        const qrContainer = document.getElementById('qr-code-wrapper');
+        if (!qrContainer) return;
+
+        // Mencari elemen canvas atau img di dalam container
+        const canvas = qrContainer.querySelector('canvas');
+        const img = qrContainer.querySelector('img');
+
+        let url = '';
+
+        if (canvas) {
+            url = canvas.toDataURL('image/png');
+        } else if (img) {
+            url = img.src;
+        }
+
+        if (url) {
+            const link = document.createElement('a');
+            link.download = `QRCode-${user.name?.replace(/\s+/g, '-') || 'User'}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success('QR Code berhasil diunduh');
+        } else {
+            toast.error('Gagal mengunduh QR Code. Elemen tidak ditemukan.');
         }
     };
 
@@ -103,6 +134,7 @@ export function UserDetailView({
                 <div className="max-w-7xl mx-auto">
                     <div className="grid lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
+                            {/* ... (Bagian Profil User Tetap Sama) ... */}
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center space-x-4">
@@ -222,7 +254,23 @@ export function UserDetailView({
                                     <CardDescription>QR Code unik untuk {user.role}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="text-center space-y-4">
-                                    {user.qrCode && <QRGenerator value={user.qrCode} logoSrc={ecotiketLogo} />}
+                                    {/* Wrapper ID ditambahkan di sini */}
+                                    <div id="qr-code-wrapper" className="flex justify-center bg-white p-2 rounded">
+                                        {user.qrCode && <QRGenerator value={user.qrCode} logoSrc={ecotiketLogo} />}
+                                    </div>
+                                    
+                                    {/* TOMBOL DOWNLOAD DITAMBAHKAN DI SINI */}
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="w-full flex items-center justify-center gap-2"
+                                        onClick={handleDownloadQR}
+                                        disabled={!user.qrCode}
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Unduh QR Code
+                                    </Button>
+
                                     <div className="p-3 bg-gray-50 rounded-lg">
                                         <p className="text-xs font-mono text-gray-700 break-all">{user.qrCode}</p>
                                     </div>

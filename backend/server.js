@@ -13,12 +13,15 @@ const announcementRoutes = require('./routes/announcements');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+app.set('trust proxy', 1);
 app.use(helmet());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 100, 
+  validate: {
+    xForwardedForHeader: false
+  },
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);

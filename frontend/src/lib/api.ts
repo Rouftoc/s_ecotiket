@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://192.168.2.13:5000/api';
 
 interface User {
   id: number;
@@ -107,6 +107,7 @@ const createHeaders = () => {
   const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     ...(token && { Authorization: `Bearer ${token}` })
   };
 };

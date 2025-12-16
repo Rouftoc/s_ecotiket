@@ -1,0 +1,14 @@
+version: "2"
+authtoken: 36uNlgXYqNxQFI1nilCZfcHMiAR_7epbKh8Myc3z8sSH7w7an
+
+tunnels:
+  # BACKEND (Pakai Terrence)
+  backend-kita:
+    proto: http
+    addr: 5000
+    domain: terrence-relapsable-undeservedly.ngrok-free.dev
+  
+  # FRONTEND (Pakai Nama Acak)
+  frontend-kita:
+    proto: http
+    addr: 5173

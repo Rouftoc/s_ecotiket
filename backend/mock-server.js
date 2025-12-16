@@ -20,7 +20,7 @@ let db = {
 };
 
 app.use(express.json());
-
+app.set('trust proxy', 1);
 app.use(cors({
   origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -688,6 +688,14 @@ app.use('*', (req, res) => {
     method: req.method
   });
 });
+
+setInterval(async () => {
+   try {
+       await pool.query('SELECT 1');
+   } catch (error) {
+       console.error('Keep-alive ping failed:', error);
+   }
+}, 5 * 60 * 1000);
 
 app.listen(PORT, async () => {
   console.log('='.repeat(50));
