@@ -374,10 +374,11 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
       return res.status(403).json({ error: 'User account is not active' });
     }
 
+    // PERBAIKAN: Untuk jumbo, 1 botol = 2 tiket
     let ticketsEarned = 0;
     switch (bottleType.toLowerCase()) {
       case 'jumbo':
-        ticketsEarned = bottleCount * 2;
+        ticketsEarned = bottleCount * 2;  // 1 botol jumbo = 2 tiket
         break;
       case 'besar':
         ticketsEarned = Math.floor(bottleCount / 5);
@@ -395,7 +396,9 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
         ticketsEarned = Math.floor(bottleCount / 5);
     }
 
-    const pointsEarned = bottleCount * 10;
+    const oldTicketBalance = user.tickets_balance;
+    const newTicketBalance = oldTicketBalance + ticketsEarned;
+    const pointsEarned = Math.floor(newTicketBalance / 10) - Math.floor(oldTicketBalance / 10);
 
     user.tickets_balance += ticketsEarned;
     user.ticketsBalance = user.tickets_balance;

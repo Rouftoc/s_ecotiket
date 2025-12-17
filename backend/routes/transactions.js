@@ -40,22 +40,29 @@ router.post('/bottle-exchange', authenticateToken, requireRole(['petugas']), asy
     const user = users[0];
     const oldTicketBalance = user.tickets_balance; 
 
-    const [rates] = await connection.execute(
-      'SELECT bottles_required FROM bottle_rates WHERE bottle_type = ? AND is_active = true',
-      [bottleType]
-    );
+    // PERBAIKAN: Untuk jumbo, 1 botol = 2 tiket
+    let ticketsEarned = 0;
+    
+    if (bottleType.toLowerCase() === 'jumbo') {
+      ticketsEarned = bottleCount * 2;  // 1 botol jumbo = 2 tiket
+    } else {
+      const [rates] = await connection.execute(
+        'SELECT bottles_required FROM bottle_rates WHERE bottle_type = ? AND is_active = true',
+        [bottleType]
+      );
 
-    if (rates.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Bottle exchange rate not found' });
+      if (rates.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Bottle exchange rate not found' });
+      }
+      const rate = rates[0];
+      ticketsEarned = Math.floor(bottleCount / rate.bottles_required);
     }
-    const rate = rates[0];
-
-    const ticketsEarned = Math.floor(bottleCount / rate.bottles_required);
 
     if (ticketsEarned === 0) {
       await connection.rollback();
-      return res.status(400).json({ error: `Minimum ${rate.bottles_required} botol '${bottleType}' diperlukan untuk 1 tiket` });
+      const minBottles = bottleType.toLowerCase() === 'jumbo' ? 1 : 'beberapa';
+      return res.status(400).json({ error: `Minimum ${minBottles} botol '${bottleType}' diperlukan untuk tiket` });
     }
 
     const newTicketBalance = oldTicketBalance + ticketsEarned; 
@@ -131,7 +138,6 @@ router.post('/ticket-usage', authenticateToken, requireRole(['petugas']), async 
         [
           user.id,
           petugasId,
-          'ticket_usage',
           'ticket_usage',
           `Menggunakan ${ticketCount} tiket untuk transportasi`,
           -ticketCount,
@@ -274,7 +280,12 @@ router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res
       );
     } 
     else if (transaction.type === 'ticket_usage') {
+      await connection.execute(
+        'UPDATE users SET tickets_balance = tickets_balance - ? WHERE id = ?',
+        [transaction.tickets_change, transaction.user_id]
+      );
     }
+    
     await connection.execute(
       'DELETE FROM transactions WHERE id = ?',
       [transactionId]
