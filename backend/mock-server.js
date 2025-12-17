@@ -16,7 +16,8 @@ const DB_FILE = path.join(__dirname, 'db.json');
 
 let db = {
   users: [],
-  transactions: []
+  transactions: [],
+  ticketExpirations: []
 };
 
 app.use(express.json());
@@ -37,6 +38,7 @@ const loadDataFromFile = () => {
   try {
     if (fs.existsSync(DB_FILE)) {
       db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      if (!db.ticketExpirations) db.ticketExpirations = [];
       console.log('Database loaded from db.json');
     } else {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
@@ -55,6 +57,55 @@ const saveDataToFile = () => {
   } catch (error) {
     console.error('Failed to save data:', error);
   }
+};
+
+// Fungsi untuk menghitung tiket hangus
+const calculateExpiredTickets = (userId) => {
+  const now = new Date();
+  let totalExpiredTickets = 0;
+
+  // Cari semua tiket yang kadaluarsa
+  const expiredIndices = [];
+  for (let i = 0; i < db.ticketExpirations.length; i++) {
+    const exp = db.ticketExpirations[i];
+    if (exp.user_id === userId && new Date(exp.expiry_date) < now && !exp.is_expired) {
+      totalExpiredTickets += exp.tickets_earned;
+      expiredIndices.push(i);
+    }
+  }
+
+  // Tandai sebagai expired
+  expiredIndices.forEach(i => {
+    db.ticketExpirations[i].is_expired = true;
+  });
+
+  // Update user tickets balance
+  if (totalExpiredTickets > 0) {
+    const user = db.users.find(u => u.id === userId);
+    if (user) {
+      user.tickets_balance -= totalExpiredTickets;
+      user.ticketsBalance = user.tickets_balance;
+
+      // Buat transaction record
+      const newTransaction = {
+        id: (db.transactions.length > 0 ? Math.max(...db.transactions.map(t => t.id)) : 0) + 1,
+        user_id: userId,
+        petugas_id: null,
+        type: 'ticket_expiration',
+        description: `${totalExpiredTickets} tiket hangus (expired)`,
+        tickets_change: -totalExpiredTickets,
+        points_earned: 0,
+        location: null,
+        status: 'completed',
+        created_at: new Date().toISOString(),
+        petugas_name: 'System'
+      };
+      db.transactions.push(newTransaction);
+      saveDataToFile();
+    }
+  }
+
+  return totalExpiredTickets;
 };
 
 const testMySQLConnection = async () => {
@@ -374,6 +425,9 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
       return res.status(403).json({ error: 'User account is not active' });
     }
 
+    // Hitung tiket hangus
+    calculateExpiredTickets(user.id);
+
     // PERBAIKAN: Untuk jumbo, 1 botol = 2 tiket
     let ticketsEarned = 0;
     switch (bottleType.toLowerCase()) {
@@ -396,6 +450,12 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
         ticketsEarned = Math.floor(bottleCount / 5);
     }
 
+    if (ticketsEarned === 0) {
+      return res.status(400).json({
+        error: `Minimum ${bottleType.toLowerCase() === 'jumbo' ? 1 : 'beberapa'} botol '${bottleType}' diperlukan untuk tiket`
+      });
+    }
+
     const oldTicketBalance = user.tickets_balance;
     const newTicketBalance = oldTicketBalance + ticketsEarned;
     const pointsEarned = Math.floor(newTicketBalance / 10) - Math.floor(oldTicketBalance / 10);
@@ -404,12 +464,27 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
     user.ticketsBalance = user.tickets_balance;
     user.points += pointsEarned;
 
+    // Hitung tanggal kadaluarsa (30 hari)
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+
+    // Simpan ke ticket expirations
+    const ticketExp = {
+      id: (db.ticketExpirations.length > 0 ? Math.max(...db.ticketExpirations.map(t => t.id)) : 0) + 1,
+      user_id: user.id,
+      tickets_earned: ticketsEarned,
+      expiry_date: expiryDate.toISOString(),
+      is_expired: false,
+      created_at: new Date().toISOString()
+    };
+    db.ticketExpirations.push(ticketExp);
+
     const newTransaction = {
       id: (db.transactions.length > 0 ? Math.max(...db.transactions.map(t => t.id)) : 0) + 1,
       user_id: user.id,
       petugas_id: petugas.id,
       type: 'bottle_exchange',
-      description: `${bottleCount} botol ${bottleType} ditukar`,
+      description: `${bottleCount} botol ${bottleType} ditukar (expire ${expiryDate.toLocaleDateString('id-ID')})`,
       tickets_change: ticketsEarned,
       points_earned: pointsEarned,
       location: location,
@@ -427,7 +502,8 @@ app.post('/api/transactions/bottle-exchange', authenticate, (req, res) => {
       message: 'Bottle exchange successful',
       transaction: newTransaction,
       tickets_earned: ticketsEarned,
-      points_earned: pointsEarned
+      points_earned: pointsEarned,
+      expiry_date: expiryDate.toLocaleDateString('id-ID')
     });
   } catch (error) {
     console.error('Bottle exchange error:', error);
@@ -455,6 +531,9 @@ app.post('/api/transactions/ticket-usage', authenticate, (req, res) => {
       return res.status(403).json({ error: 'User account is not active' });
     }
 
+    // Hitung tiket hangus
+    calculateExpiredTickets(user.id);
+
     if (user.tickets_balance < ticketCount) {
       return res.status(400).json({
         error: 'Insufficient tickets',
@@ -465,6 +544,32 @@ app.post('/api/transactions/ticket-usage', authenticate, (req, res) => {
 
     user.tickets_balance -= ticketCount;
     user.ticketsBalance = user.tickets_balance;
+
+    // Gunakan tiket (priority: hangus dulu, baru aktif)
+    let remainingTickets = ticketCount;
+
+    // Gunakan tiket yang sudah hangus
+    for (let i = 0; i < db.ticketExpirations.length && remainingTickets > 0; i++) {
+      const exp = db.ticketExpirations[i];
+      if (exp.user_id === user.id && exp.is_expired) {
+        const used = Math.min(exp.tickets_earned, remainingTickets);
+        exp.tickets_earned -= used;
+        remainingTickets -= used;
+      }
+    }
+
+    // Gunakan tiket yang aktif
+    for (let i = 0; i < db.ticketExpirations.length && remainingTickets > 0; i++) {
+      const exp = db.ticketExpirations[i];
+      if (exp.user_id === user.id && !exp.is_expired) {
+        const used = Math.min(exp.tickets_earned, remainingTickets);
+        exp.tickets_earned -= used;
+        if (exp.tickets_earned === 0) {
+          exp.is_expired = true;
+        }
+        remainingTickets -= used;
+      }
+    }
 
     const newTransaction = {
       id: (db.transactions.length > 0 ? Math.max(...db.transactions.map(t => t.id)) : 0) + 1,
@@ -512,6 +617,22 @@ app.get('/api/transactions/user/:userId', authenticate, (req, res) => {
   }
 });
 
+app.get('/api/ticket-expirations/:userId', authenticate, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    if (req.user.role === 'penumpang' && req.user.id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const expirations = db.ticketExpirations
+      .filter(t => t.user_id === userId)
+      .sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+    res.json({ expirations });
+  } catch (error) {
+    console.error('Get ticket expirations error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/transactions', authenticate, async (req, res) => {
   if (req.user.role !== 'admin' && req.user.role !== 'petugas') {
     return res.status(403).json({ error: 'Access denied' });
@@ -519,54 +640,37 @@ app.get('/api/transactions', authenticate, async (req, res) => {
 
   const { startDate, endDate, type, limit } = req.query;
 
-  let sql = 'SELECT * FROM transactions WHERE 1=1';
-  const params = [];
-
-  if (startDate) {
-    sql += ' AND created_at >= ?';
-    params.push(`${startDate} 00:00:00`);
-  }
-  if (endDate) {
-    sql += ' AND created_at <= ?';
-    params.push(`${endDate} 23:59:59`);
-  }
+  let filteredTransactions = [...db.transactions];
 
   if (type) {
-    sql += ' AND type = ?';
-    params.push(type);
+    filteredTransactions = filteredTransactions.filter(t => t.type === type);
   }
 
-  sql += ' ORDER BY created_at DESC';
-
-  if (limit) {
-    const limitNum = parseInt(limit, 10);
-    if (!isNaN(limitNum) && limitNum > 0) {
-      sql += ` LIMIT ${limitNum}`;
-    }
+  if (startDate) {
+    filteredTransactions = filteredTransactions.filter(t => 
+      new Date(t.created_at) >= new Date(startDate)
+    );
   }
 
-  try {
-    console.log('Executing SQL:', sql);
-    console.log('With params:', params);
-
-    const [transactions] = await pool.execute(sql, params);
-
-    console.log(`Successfully fetched ${transactions.length} transactions from MySQL.`);
-
-    res.json({
-      success: true,
-      transactions: transactions,
-      total: transactions.length,
-      filtered: !!(startDate || endDate || type || limit)
-    });
-
-  } catch (error) {
-    console.error('MySQL query error in /api/transactions:', error);
-    res.status(500).json({
-      error: 'Failed to fetch transactions from database',
-      message: error.message
-    });
+  if (endDate) {
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(23, 59, 59, 999);
+    filteredTransactions = filteredTransactions.filter(t => 
+      new Date(t.created_at) <= endDateTime
+    );
   }
+
+  filteredTransactions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const limitNum = limit ? parseInt(limit, 10) : 100;
+  const finalTransactions = filteredTransactions.slice(0, limitNum);
+
+  res.json({
+    success: true,
+    transactions: finalTransactions,
+    total: finalTransactions.length,
+    filtered: !!(startDate || endDate || type || limit)
+  });
 });
 
 app.delete('/api/transactions/:id', authenticate, async (req, res) => {
@@ -577,42 +681,40 @@ app.delete('/api/transactions/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Only admin can delete transactions.' });
     }
 
-    const checkSql = 'SELECT * FROM transactions WHERE id = ?';
-    const [existingTransactions] = await pool.execute(checkSql, [transactionId]);
-
-    if (existingTransactions.length === 0) {
+    const transactionIndex = db.transactions.findIndex(t => t.id === transactionId);
+    if (transactionIndex === -1) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    const transaction = existingTransactions[0];
+    const transaction = db.transactions[transactionIndex];
 
     if (transaction.type === 'bottle_exchange') {
-      const updateUserSql = `
-        UPDATE users 
-        SET tickets_balance = tickets_balance - ?, 
-            points = points - ? 
-        WHERE id = ?
-      `;
-      await pool.execute(updateUserSql, [
-        transaction.tickets_change,
-        transaction.points_earned || 0,
-        transaction.user_id
-      ]);
+      const user = db.users.find(u => u.id === transaction.user_id);
+      if (user) {
+        user.tickets_balance -= transaction.tickets_change;
+        user.ticketsBalance = user.tickets_balance;
+        user.points -= (transaction.points_earned || 0);
+      }
+
+      // Hapus dari ticket expirations (ambil yang paling baru)
+      const lastExpIndex = db.ticketExpirations
+        .map((t, i) => ({ ...t, idx: i }))
+        .filter(t => t.user_id === transaction.user_id)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      
+      if (lastExpIndex) {
+        db.ticketExpirations.splice(lastExpIndex.idx, 1);
+      }
     } else if (transaction.type === 'ticket_usage') {
-      const updateUserSql = `
-        UPDATE users 
-        SET tickets_balance = tickets_balance - ? 
-        WHERE id = ?
-      `;
-      await pool.execute(updateUserSql, [transaction.tickets_change, transaction.user_id]);
+      const user = db.users.find(u => u.id === transaction.user_id);
+      if (user) {
+        user.tickets_balance -= transaction.tickets_change;
+        user.ticketsBalance = user.tickets_balance;
+      }
     }
 
-    const deleteSql = 'DELETE FROM transactions WHERE id = ?';
-    const [result] = await pool.execute(deleteSql, [transactionId]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Transaction not found' });
-    }
+    db.transactions.splice(transactionIndex, 1);
+    saveDataToFile();
 
     console.log(`Transaction ${transactionId} deleted successfully by admin ${req.user.name}`);
 
@@ -692,6 +794,13 @@ app.use('*', (req, res) => {
   });
 });
 
+// Check dan proses tiket hangus setiap jam
+setInterval(() => {
+  console.log('Checking for expired tickets...');
+  const userIds = [...new Set(db.ticketExpirations.map(t => t.user_id))];
+  userIds.forEach(userId => calculateExpiredTickets(userId));
+}, 60 * 60 * 1000);
+
 setInterval(async () => {
    try {
        await pool.query('SELECT 1');
@@ -734,6 +843,7 @@ app.listen(PORT, async () => {
   console.log('  POST /api/transactions/bottle-exchange (auth required)');
   console.log('  POST /api/transactions/ticket-usage (auth required)');
   console.log('  GET  /api/transactions/user/:userId (auth required)');
+  console.log('  GET  /api/ticket-expirations/:userId (auth required)');
   console.log('  GET  /api/transactions (admin/petugas only)');
   console.log('  DELETE /api/transactions/:id (admin only)');
   console.log('  GET  /api/locations (auth required)');
