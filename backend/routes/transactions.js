@@ -129,13 +129,12 @@ router.post('/ticket-usage', authenticateToken, requireRole(['petugas']), async 
       const [transactionResult] = await connection.execute(
         'INSERT INTO transactions (user_id, petugas_id, type, description, tickets_change, location) VALUES (?, ?, ?, ?, ?, ?)',
         [
-          user.id,
-          petugasId,
-          'ticket_usage',
-          'ticket_usage',
-          `Menggunakan ${ticketCount} tiket untuk transportasi`,
-          -ticketCount,
-          location
+          user.id,        // 1. user_id
+          petugasId,      // 2. petugas_id
+          'ticket_usage', // 3. type
+          `Menggunakan ${ticketCount} tiket untuk transportasi`, // 4. description (Langsung deskripsi panjang)
+          -ticketCount,   // 5. tickets_change (Angka negatif)
+          location        // 6. location
         ]
       );
 
