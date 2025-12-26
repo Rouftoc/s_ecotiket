@@ -21,3 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Security - Wajib tambah ini
+.env
+backend/.envgit rm --cached backend/.env
