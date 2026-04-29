@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
-import {
-  Users, MapPin, BarChart3, FileText,
-  LogOut, Menu, X, User
-} from 'lucide-react';
+import { BarChart3, Users, MapPin, FileText, Database, Settings, LogOut, User, Menu, X, Image as ImageIcon, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,16 +12,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { OverviewTab } from '@/components/admin/tabs/OverviewTab';
-import { UsersTab } from '@/components/admin/tabs/UsersTab';
-import { LocationsTab } from '@/components/admin/tabs/LocationsTab';
-import { UserDetailView } from '@/components/admin/views/UserDetailView';
-import { PetugasDetailView } from '@/components/admin/views/PetugasDetailView';
-import { AddUserForm } from '@/components/admin/forms/AddUserForm';
-import { LocationForm } from '@/components/admin/forms/LocationForm';
-import { EditUserDialog } from '@/components/admin/forms/EditUserDialog';
-import { EditProfileDialog } from '@/components/admin/forms/EditProfileDialog';
+import UserManager from '@/components/admin/managers/UserManager';
+import LocationManager from '@/components/admin/managers/LocationManager';
 
-import ReportGenerator from '@/components/ReportGenerator';
+import { EditProfileDialog } from '@/components/admin/forms/EditProfileDialog';
+import MasterDataView from '@/components/admin/views/MasterDataView';
+import NewsManager from '@/components/admin/managers/NewsManager';
+import AdminProfile from '@/components/admin/views/AdminProfile';
+import AdminChatManager from '@/components/admin/managers/AdminChatManager';
+
+import ReportGenerator from '@/components/admin/managers/ReportGenerator';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
 
 import { usersAPI, transactionsAPI, authAPI, locationsAPI } from '@/lib/api';
@@ -33,128 +30,9 @@ import {
   DashboardStats, BottleStats, PetugasDetail, CurrentUser
 } from '@/types/dashboard';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-const hardcodedLocations: Location[] = [
-  {
-    id: 1,
-    name: 'Terminal Antasari',
-    type: 'terminal',
-    operating_hours: '08:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 2,
-    name: 'Terminal KM 0',
-    type: 'terminal',
-    operating_hours: '08:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 3,
-    name: 'Koridor 1 (Terminal Antasari - Terminal Km. 6)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 4,
-    name: 'Koridor 2 (Terminal Antasari - RS Ansari Saleh)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 5,
-    name: 'Koridor 3 (Terminal Antasari - Jembatan Bromo)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 6,
-    name: 'Koridor 4 (Sungai Andai - Teluk Tiram)',
-    type: 'koridor',
-    capacity: 12,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 7,
-    name: 'Koridor 5 (Terminal Antasari - Pemangkih Laut)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 8,
-    name: 'Koridor 6 (Sungai Lulut - 0 Km)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 9,
-    name: 'Koridor 7 (0 Km - Dermaga Alalak)',
-    type: 'koridor',
-    capacity: 12,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 10,
-    name: 'Koridor 8 (Terminal Antasari - Pelabuhan Trisakti)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 11,
-    name: 'Koridor 9 (Terminal Antasari - Belitung)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 12,
-    name: 'Koridor 10 (RS Ansari Saleh - Trisakti (Via Kuin))',
-    type: 'koridor',
-    capacity: 12,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 13,
-    name: 'Koridor 11 (Terminal Antasari - Beruntung Jaya)',
-    type: 'koridor',
-    capacity: 12,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 14,
-    name: 'Koridor 12 (Banjar Raya - Terminal Antasari)',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  },
-  {
-    id: 15,
-    name: 'Koridor 13 (Trisakti - Sudimampir (Via Lingkar Selatan))',
-    type: 'koridor',
-    capacity: 18,
-    operating_hours: '06:00-18:00',
-    status: 'active'
-  }
-];
+
+// Hardcoded locations removed. Using real data from database.
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -168,12 +46,9 @@ export default function AdminDashboard() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
-  const [selectedPetugas, setSelectedPetugas] = useState<PetugasDetail | null>(null);
-  const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
-  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
 
-  const [userFilters, setUserFilters] = useState({ search: '', role: 'all', status: 'all' });
+
+
   const [statsFilter, setStatsFilter] = useState('all');
   const [userPieFilter, setUserPieFilter] = useState('all');
 
@@ -181,10 +56,7 @@ export default function AdminDashboard() {
   const [growthRate, setGrowthRate] = useState(0);
   const [growthLoading, setGrowthLoading] = useState(false);
 
-  const [isAddingUser, setIsAddingUser] = useState(false);
-  const [isAddingLocation, setIsAddingLocation] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isProfileUpdating, setIsProfileUpdating] = useState(false);
 
@@ -207,18 +79,21 @@ export default function AdminDashboard() {
     }
   }, [navigate]);
 
-const loadInitialData = async () => {
+  const updateLocalStorage = (updatedUser: CurrentUser) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setCurrentUser(updatedUser);
+  };
+
+  const loadInitialData = async () => {
     setLoading(true);
-    await Promise.all([loadUsers(), loadLocations(), loadTransactions()]); 
+    await Promise.all([loadUsers(), loadLocations(), loadTransactions()]);
     setLoading(false);
   };
 
   const loadUsers = async () => {
     try {
       const response = await usersAPI.getAllUsers({
-        role: userFilters.role !== 'all' ? userFilters.role : undefined,
-        status: userFilters.status !== 'all' ? userFilters.status : undefined,
-        search: userFilters.search || undefined
+        // Load all users for stats, no filters for dashboard level
       });
       setUsers((response.users as any[]) || []);
     } catch (error) {
@@ -230,15 +105,11 @@ const loadInitialData = async () => {
     try {
       const response = await locationsAPI.getAllLocations();
       const apiLocations = (response.locations as any[]) || [];
-
-      if (apiLocations.length > 0) {
-        setLocations(apiLocations);
-      } else {
-        setLocations(hardcodedLocations);
-      }
+      setLocations(apiLocations);
     } catch (error) {
-      console.error('Failed to load locations from API, using hardcoded data:', error);
-      setLocations(hardcodedLocations);
+      console.error('Failed to load locations from API:', error);
+      toast.error('Gagal memuat data lokasi');
+      setLocations([]);
     }
   };
 
@@ -246,7 +117,7 @@ const loadInitialData = async () => {
     try {
       let dateFilters = {};
       const now = new Date();
-      
+
       if (statsFilter === 'today') {
         const today = now.toISOString().split('T')[0];
         dateFilters = { startDate: today, endDate: today };
@@ -262,20 +133,22 @@ const loadInitialData = async () => {
 
       const response = await transactionsAPI.getAllTransactions(dateFilters);
       const txData = (response.transactions as any[]) || [];
-      
+
       setTransactions(txData);
-      calculateBottleStats(txData);      
-      calculateGrowthRate(txData); 
-      
+      calculateBottleStats(txData);
+      calculateGrowthRate(txData);
+
     } catch (error) {
       console.error(error);
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => loadUsers(), 500);
-    return () => clearTimeout(timer);
-  }, [userFilters]);
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    toast.success('Logout berhasil');
+    navigate('/');
+  };
+
 
   useEffect(() => {
     loadTransactions();
@@ -296,42 +169,42 @@ const loadInitialData = async () => {
     setBottleStats(stats);
   };
 
-const calculateGrowthRate = (txData: Transaction[]) => {
-  setGrowthLoading(true);
-  try {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); 
+  const calculateGrowthRate = (txData: Transaction[]) => {
+    setGrowthLoading(true);
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
 
-    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthYear = lastMonthDate.getFullYear();
-    const lastMonth = lastMonthDate.getMonth();
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthYear = lastMonthDate.getFullYear();
+      const lastMonth = lastMonthDate.getMonth();
 
-    const currentMonthCount = txData.filter(t => {
-      const tDate = new Date(t.created_at);
-      return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-    }).length;
+      const currentMonthCount = txData.filter(t => {
+        const tDate = new Date(t.created_at);
+        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      }).length;
 
-    const lastMonthCount = txData.filter(t => {
-      const tDate = new Date(t.created_at);
-      return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
-    }).length;
+      const lastMonthCount = txData.filter(t => {
+        const tDate = new Date(t.created_at);
+        return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
+      }).length;
 
-    let rate = 0;
-    if (lastMonthCount > 0) {
-      rate = ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100;
-    } else if (currentMonthCount > 0) {
-      rate = 100;
+      let rate = 0;
+      if (lastMonthCount > 0) {
+        rate = ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100;
+      } else if (currentMonthCount > 0) {
+        rate = 100;
+      }
+
+      setGrowthRate(parseFloat(rate.toFixed(1)));
+    } catch (error) {
+      console.error("Gagal menghitung growth rate:", error);
+      setGrowthRate(0);
+    } finally {
+      setGrowthLoading(false);
     }
-
-    setGrowthRate(parseFloat(rate.toFixed(1))); 
-  } catch (error) {
-    console.error("Gagal menghitung growth rate:", error);
-    setGrowthRate(0);
-  } finally {
-    setGrowthLoading(false);
-  }
-};
+  };
 
   const dashboardStats: DashboardStats = {
     totalUsers: users.length,
@@ -346,116 +219,7 @@ const calculateGrowthRate = (txData: Transaction[]) => {
     totalBottles: bottleStats.total
   };
 
-  const loadUserTransactions = async (userId: number) => {
-    setIsTransactionsLoading(true);
-    try {
-      const response = await transactionsAPI.getTransactionsByUserId(userId);
-      setUserTransactions((response.transactions as any[]) || []);
-    } catch (error) {
-      toast.error('Gagal memuat riwayat transaksi');
-      setUserTransactions([]);
-    } finally {
-      setIsTransactionsLoading(false);
-    }
-  };
 
-  const handleTransactionDeleted = () => {
-    if (selectedUser) {
-      loadUserTransactions(selectedUser.id);
-    }
-    if (selectedPetugas) {
-      loadUserTransactions(selectedPetugas.id);
-    }
-    loadTransactions();
-    loadUsers();
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    toast.success('Logout berhasil');
-    navigate('/');
-  };
-
-  const handleAddUser = async (data: any) => {
-    try {
-      await authAPI.register(data);
-      toast.success('Pengguna berhasil ditambahkan');
-      setIsAddingUser(false);
-      loadUsers();
-    } catch (error) {
-      toast.error((error as any).message || 'Gagal menambahkan pengguna');
-    }
-  };
-
-  const handleDeleteUser = (id: number) => {
-    Swal.fire({
-      title: "Yakin hapus pengguna?", text: "Data tidak bisa dikembalikan!", icon: "warning",
-      showCancelButton: true, confirmButtonColor: "#d33", confirmButtonText: "Ya, hapus!"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await usersAPI.deleteUser(id);
-        toast.success('Pengguna dihapus');
-        loadUsers();
-        if (selectedUser?.id === id) setSelectedUser(null);
-        if (selectedPetugas?.id === id) setSelectedPetugas(null);
-      }
-    });
-  };
-
-  const handleUpdateUser = async (id: number, data: Partial<UserRecord>) => {
-    try {
-      await usersAPI.updateUser(id, data);
-      toast.success('Data berhasil diupdate');
-      loadUsers();
-      if (selectedUser?.id === id) setSelectedUser({ ...selectedUser, ...data } as UserRecord);
-    } catch (error) {
-      toast.error('Gagal update data');
-    }
-  };
-
-  const handleAddLocation = async (data: Omit<Location, 'id'>) => {
-    try {
-      await locationsAPI.createLocation(data as any);
-      toast.success('Lokasi ditambahkan');
-      setIsAddingLocation(false);
-      loadLocations();
-    } catch (error) {
-      toast.error('Gagal tambah lokasi');
-    }
-  };
-
-  const handleUpdateLocation = async (data: Location) => {
-    try {
-      await locationsAPI.updateLocation(data.id, data as any);
-      toast.success('Lokasi diupdate');
-      setEditingLocation(null);
-      loadLocations();
-    } catch (error) {
-      toast.error('Gagal update lokasi');
-    }
-  };
-
-  const handleDeleteLocation = (id: number) => {
-    Swal.fire({
-      title: "Hapus Lokasi?", icon: "warning", showCancelButton: true, confirmButtonColor: "#d33", confirmButtonText: "Ya"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await locationsAPI.deleteLocation(id);
-        toast.success('Lokasi dihapus');
-        loadLocations();
-      }
-    });
-  };
-
-  const handleViewUser = (user: UserRecord) => {
-    if (user.role === 'petugas') {
-      const petugasDetail: PetugasDetail = { ...user, total_transactions: 0, last_activity: undefined };
-      setSelectedPetugas(petugasDetail);
-    } else {
-      setSelectedUser(user);
-    }
-    loadUserTransactions(user.id);
-  };
 
   if (!currentUser) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
@@ -463,7 +227,11 @@ const calculateGrowthRate = (txData: Transaction[]) => {
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'users', label: 'Pengguna', icon: Users },
     { id: 'locations', label: 'Lokasi', icon: MapPin },
+    { id: 'news', label: 'Berita', icon: FileText },
+    { id: 'messages', label: 'Live Chat', icon: MessageCircle },
+    { id: 'master', label: 'Data Master', icon: Database },
     { id: 'reports', label: 'Laporan', icon: FileText },
+    { id: 'profile', label: 'Profil Saya', icon: User },
   ];
 
   return (
@@ -476,16 +244,25 @@ const calculateGrowthRate = (txData: Transaction[]) => {
           </Button>
         </div>
         <nav className="mt-6 px-3 space-y-1">
-          {navigationItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); setSelectedUser(null); setSelectedPetugas(null); }}
-              className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50'}`}
-            >
-              <item.icon className="h-5 w-5 mr-3" />
-              {item.label}
-            </button>
-          ))}
+          {navigationItems.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ${activeTab === item.id
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  } `}
+              >
+                <Icon className="mr-3 h-5 w-5" />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
         <div className="absolute bottom-0 w-full p-4 border-t">
           <DropdownMenu>
@@ -500,7 +277,6 @@ const calculateGrowthRate = (txData: Transaction[]) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" side="top">
               <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => setIsProfileOpen(true)}><User className="mr-2 h-4 w-4" />Edit Profil</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="mr-2 h-4 w-4" />Logout</DropdownMenuItem>
             </DropdownMenuContent>
@@ -515,91 +291,66 @@ const calculateGrowthRate = (txData: Transaction[]) => {
 
         <header className="hidden lg:flex bg-white shadow-sm border-b px-6 py-4 justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-900 capitalize">
-            {selectedUser ? 'Detail Pengguna' : selectedPetugas ? 'Detail Petugas' : activeTab}
+            {activeTab === 'overview' ? 'Overview' :
+              activeTab === 'users' ? 'Manajemen Pengguna' :
+                activeTab === 'locations' ? 'Manajemen Lokasi' :
+                  activeTab === 'news' ? 'Manajemen Berita' :
+                    activeTab === 'messages' ? 'Live Chat & Support' :
+                      activeTab === 'master' ? 'Data Master' :
+                        activeTab === 'reports' ? 'Laporan' :
+                          activeTab === 'profile' ? 'Profil Saya' : activeTab}
           </h1>
           <Badge>Administrator</Badge>
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          {selectedUser ? (
-            <UserDetailView
-              user={selectedUser}
-              transactions={userTransactions}
-              isTransactionsLoading={isTransactionsLoading}
-              onBack={() => setSelectedUser(null)}
-              onDelete={handleDeleteUser}
-              onUpdate={handleUpdateUser}
-              currentUserRole={currentUser.role}
-              onTransactionDeleted={handleTransactionDeleted}
-            />
-          ) : selectedPetugas ? (
-            <PetugasDetailView
-              petugas={selectedPetugas}
-              transactions={userTransactions}
-              isTransactionsLoading={isTransactionsLoading}
-              onBack={() => setSelectedPetugas(null)}
-              onEdit={(p) => setEditingUser(p as any)}
-              onDelete={handleDeleteUser}
-              currentUserRole={currentUser.role}
-              onTransactionDeleted={handleTransactionDeleted}
-            />
-          ) : (
-            <div className="p-6">
-              {activeTab === 'overview' && (
-                <OverviewTab
-                  stats={dashboardStats}
-                  growthRate={growthRate}
-                  growthLoading={growthLoading}
-                  bottleStats={bottleStats}
-                  transactions={transactions}
-                  users={users}
-                  statsFilter={statsFilter}
-                  setStatsFilter={setStatsFilter}
-                  userFilter={userPieFilter}
-                  setUserFilter={setUserPieFilter}
-                />
-              )}
-              {activeTab === 'users' && (
-                <UsersTab
-                  users={users}
-                  loading={loading}
-                  filters={userFilters}
-                  setFilters={(f) => setUserFilters({ ...userFilters, ...f })}
-                  onAddUser={() => setIsAddingUser(true)}
-                  onViewUser={handleViewUser}
-                  onEditUser={setEditingUser}
-                  onDeleteUser={handleDeleteUser}
-                />
-              )}
-              {activeTab === 'locations' && (
-                <LocationsTab
-                  locations={locations}
-                  loading={loading}
-                  onAddLocation={() => setIsAddingLocation(true)}
-                  onEditLocation={setEditingLocation}
-                  onDeleteLocation={handleDeleteLocation}
-                />
-              )}
-              {activeTab === 'reports' && (
-                <ReportGenerator users={users} transactions={transactions} />
-              )}
-            </div>
-          )}
+          <div className="p-6">
+            {activeTab === 'overview' && (
+              <OverviewTab
+                stats={dashboardStats}
+                growthRate={growthRate}
+                growthLoading={growthLoading}
+                bottleStats={bottleStats}
+                transactions={transactions}
+                users={users}
+                statsFilter={statsFilter}
+                setStatsFilter={setStatsFilter}
+                userFilter={userPieFilter}
+                setUserFilter={setUserPieFilter}
+              />
+            )}
+            {activeTab === 'users' && (
+              <UserManager />
+            )}
+            {activeTab === 'locations' && (
+              <LocationManager />
+            )}
+            {activeTab === 'news' && (
+              <NewsManager />
+            )}
+            {activeTab === 'messages' && (
+              <AdminChatManager />
+            )}
+            {activeTab === 'master' && (
+              <MasterDataView />
+            )}
+            {activeTab === 'reports' && (
+              <ReportGenerator users={users} transactions={transactions} />
+            )}
+            {activeTab === 'profile' && (
+              <AdminProfile
+                user={currentUser}
+                setUser={setCurrentUser}
+                updateLocalStorage={updateLocalStorage}
+              />
+            )}
+          </div>
         </main>
       </div>
 
-      {isAddingUser && <Dialog open={isAddingUser} onOpenChange={setIsAddingUser}><DialogContent><DialogHeader><DialogTitle>Tambah Pengguna</DialogTitle><DialogDescription>Isi form berikut.</DialogDescription></DialogHeader><AddUserForm onSubmit={handleAddUser} onCancel={() => setIsAddingUser(false)} /></DialogContent></Dialog>}
 
-      {isAddingLocation && <Dialog open={isAddingLocation} onOpenChange={setIsAddingLocation}><DialogContent><DialogHeader><DialogTitle>Tambah Lokasi</DialogTitle></DialogHeader><LocationForm onSubmit={handleAddLocation} onCancel={() => setIsAddingLocation(false)} /></DialogContent></Dialog>}
 
-      {editingLocation && <Dialog open={!!editingLocation} onOpenChange={() => setEditingLocation(null)}><DialogContent><DialogHeader><DialogTitle>Edit Lokasi</DialogTitle></DialogHeader><LocationForm location={editingLocation} onSubmit={(data) => handleUpdateLocation({ ...editingLocation, ...data })} onCancel={() => setEditingLocation(null)} /></DialogContent></Dialog>}
 
-      <EditUserDialog
-        open={!!editingUser}
-        user={editingUser}
-        onOpenChange={() => setEditingUser(null)}
-        onSave={(data) => handleUpdateUser(editingUser!.id, data)}
-      />
 
       <EditProfileDialog
         open={isProfileOpen}
@@ -621,6 +372,6 @@ const calculateGrowthRate = (txData: Transaction[]) => {
           finally { setIsProfileUpdating(false); }
         }}
       />
-    </div>
+    </div >
   );
 }

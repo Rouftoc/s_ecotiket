@@ -8,10 +8,10 @@ const dbConfig = {
   database: process.env.DB_NAME || 'eco_tiket',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 20,
   queueLimit: 0,
   enableKeepAlive: true,
-  connectTimeout: 60000 
+  connectTimeout: 60000
 };
 
 const pool = mysql.createPool(dbConfig);

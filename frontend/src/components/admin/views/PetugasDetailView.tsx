@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Edit, Trash2, Mail, Phone, QrCode, BarChart3, Clock } from 'lucide-react';
-import QRGenerator from '@/components/QRGenerator';
+import QRGenerator from '@/components/common/qr/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
 import { PetugasDetail, Transaction } from '@/types/dashboard';
@@ -136,7 +136,7 @@ export function PetugasDetailView({
                                 <CardContent>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="text-center p-6 bg-blue-50 rounded-lg">
-                                            <div className="text-3xl font-bold text-blue-600">{petugas.total_transactions || 0}</div>
+                                            <div className="text-3xl font-bold text-blue-600">{transactions.length}</div>
                                             <div className="text-xs text-gray-600 mt-2">Total Transaksi</div>
                                         </div>
                                         <div className="text-center p-6 bg-green-50 rounded-lg">
@@ -195,7 +195,7 @@ export function PetugasDetailView({
                                     <Button variant="outline" className="w-full hover:bg-blue-50" onClick={() => onEdit(petugas)}>
                                         <Edit className="h-4 w-4 mr-2" />Edit Petugas
                                     </Button>
-                                    <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(petugas.id)}>
+                                    <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(petugas.id_user)}>
                                         <Trash2 className="h-4 w-4 mr-2" />Hapus Petugas
                                     </Button>
                                 </CardContent>

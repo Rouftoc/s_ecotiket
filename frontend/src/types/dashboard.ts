@@ -1,5 +1,5 @@
 export interface UserRecord {
-    id: number;
+    id_user: number;
     name: string;
     email?: string;
     nik?: string;
@@ -10,8 +10,8 @@ export interface UserRecord {
     ticketsBalance: number;
     points: number;
     status: 'active' | 'inactive' | 'suspended' | string;
-    created_at: string;     
-    token?: string;         
+    created_at: string;
+    token?: string;
 }
 
 export interface CurrentUser extends UserRecord { }
@@ -22,20 +22,20 @@ export interface UpdateData {
     phone?: string;
     address?: string;
     status?: string;
-    tickets_balance?: number; 
-    ticketsBalance?: number; 
+    tickets_balance?: number;
+    ticketsBalance?: number;
     points?: number;
 }
 
 export interface Transaction {
-    id: number;
-    user_id: number;
-    petugas_id: number;
+    id_transaction: number;
+    id_user: number;
+    id_petugas: number;
     type: 'bottle_exchange' | 'ticket_usage' | string;
     description: string;
     bottles_count?: number;
     bottle_type?: string;
-    tickets_change: number; 
+    tickets_change: number;
     points_earned?: number;
     location?: string;
     status: 'pending' | 'completed' | 'cancelled';
@@ -43,8 +43,24 @@ export interface Transaction {
     user_name?: string;
     petugas_name?: string;
 }
+
+export interface PetugasTransaction {
+    id_transaction: number;
+    qrCode: string;
+    type: 'stand' | 'karnet';
+    bottles?: {
+        jumbo: number;
+        besar: number;
+        sedang: number;
+        kecil: number;
+        cup: number;
+    };
+    tickets: number;
+    timestamp: string;
+    location: string;
+}
 export interface Location {
-    id: number;
+    id_location: number;
     name: string;
     type: 'terminal' | 'koridor' | 'stand';
     address?: string;
@@ -78,8 +94,8 @@ export interface DashboardStats {
 }
 
 export interface UserActivity {
-    id: number;
-    user_id: number;
+    id_activity: number;
+    id_user: number;
     activity_type: string;
     description: string;
     created_at: string;
@@ -90,4 +106,17 @@ export interface PetugasDetail extends UserRecord {
     total_transactions?: number;
     last_activity?: string;
     activities?: UserActivity[];
+}
+
+export interface NewsItem {
+    id_news: number;
+    title: string;
+    slug: string;
+    content: string;
+    image: string | null;
+    is_featured: boolean;
+    created_by: number | null;
+    author_name?: string;
+    created_at: string;
+    updated_at: string;
 }

@@ -112,7 +112,7 @@ export function LocationsTab({
                                     </TableRow>
                                 ) : locations && locations.length > 0 ? (
                                     locations.map((location) => (
-                                        <TableRow key={location.id}>
+                                        <TableRow key={location.id_location}>
                                             <TableCell>
                                                 <div className="flex items-center space-x-3">
                                                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -143,18 +143,18 @@ export function LocationsTab({
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline" 
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
                                                         onClick={() => onEditLocation(location)}
                                                         title="Edit lokasi"
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline" 
-                                                        onClick={() => onDeleteLocation(location.id)}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => onDeleteLocation(location.id_location)}
                                                         title="Hapus lokasi"
                                                     >
                                                         <Trash2 className="h-4 w-4" />

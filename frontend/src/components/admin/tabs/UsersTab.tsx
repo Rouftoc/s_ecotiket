@@ -116,7 +116,7 @@ export function UsersTab({
                                     <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">Tidak ada data pengguna</TableCell></TableRow>
                                 ) : (
                                     users.map((userData) => (
-                                        <TableRow key={userData.id}>
+                                        <TableRow key={userData.id_user}>
                                             <TableCell>
                                                 <div className="flex items-center space-x-3">
                                                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -158,7 +158,7 @@ export function UsersTab({
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
                                                     {userData.role !== 'admin' && (
-                                                        <Button size="sm" variant="outline" onClick={() => onDeleteUser(userData.id)}>
+                                                        <Button size="sm" variant="outline" onClick={() => onDeleteUser(userData.id_user)}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     )}

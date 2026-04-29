@@ -15,12 +15,12 @@ interface UserTransactionHistoryProps {
     onDeleteTransaction?: (id: number) => Promise<void>;
 }
 
-export function UserTransactionHistory({ 
-    transactions, 
-    isLoading, 
-    role, 
+export function UserTransactionHistory({
+    transactions,
+    isLoading,
+    role,
     currentUserRole,
-    onDeleteTransaction 
+    onDeleteTransaction
 }: UserTransactionHistoryProps) {
     const [deletingTransactionId, setDeletingTransactionId] = useState<number | null>(null);
 
@@ -46,9 +46,9 @@ export function UserTransactionHistory({
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    setDeletingTransactionId(transaction.id);
-                    await onDeleteTransaction(transaction.id);
-                    
+                    setDeletingTransactionId(transaction.id_transaction);
+                    await onDeleteTransaction(transaction.id_transaction);
+
                 } catch (error) {
                     console.error(error);
                     Swal.fire({
@@ -101,7 +101,7 @@ export function UserTransactionHistory({
                                 </TableRow>
                             ) : (
                                 transactions.map((tx) => (
-                                    <TableRow key={tx.id}>
+                                    <TableRow key={tx.id_transaction}>
                                         <TableCell className="text-sm text-gray-600">
                                             {formatDateTime(tx.created_at)}
                                         </TableCell>
@@ -124,10 +124,10 @@ export function UserTransactionHistory({
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleDeleteClick(tx)}
-                                                    disabled={deletingTransactionId === tx.id}
+                                                    disabled={deletingTransactionId === tx.id_transaction}
                                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                                 >
-                                                    {deletingTransactionId === tx.id ? (
+                                                    {deletingTransactionId === tx.id_transaction ? (
                                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
                                                     ) : (
                                                         <Trash2 className="h-4 w-4" />

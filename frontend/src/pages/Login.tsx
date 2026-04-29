@@ -7,9 +7,9 @@ import logoEcoTiket from '@/assets/logo_ecotiket.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, QrCode, Mail, CreditCard } from 'lucide-react';
+import { Loader2, QrCode, Mail, CreditCard, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import QRScanner from '@/components/QRScanner';
+import QRScanner from '@/components/common/qr/QRScanner';
 import { authAPI } from '@/lib/api';
 
 interface UserData {
@@ -32,6 +32,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Removed: Force clean state on mount was causing session loss on refresh
+  // User session should persist until explicit logout
 
   const [emailData, setEmailData] = useState({
     email: '',
@@ -72,7 +76,7 @@ export default function Login() {
       } else if (response.user.role === 'petugas') {
         navigate('/petugas');
       } else {
-        navigate('/penumpang');
+        navigate('/');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login gagal';
@@ -85,8 +89,8 @@ export default function Login() {
 
   const handleNIKLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nikData.nik || !nikData.password) {
-      setError('NIK dan password harus diisi');
+    if (!nikData.nik) {
+      setError('NIK harus diisi');
       return;
     }
 
@@ -99,7 +103,8 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await authAPI.login('', nikData.password, undefined, nikData.nik);
+      // For passengers, we use NIK as the password
+      const response = await authAPI.login('', nikData.nik, undefined, nikData.nik);
 
       if (!response.user) {
         throw new Error('Invalid response from server');
@@ -145,7 +150,7 @@ export default function Login() {
       } else if (response.user.role === 'petugas') {
         navigate('/petugas');
       } else {
-        navigate('/penumpang');
+        navigate('/');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'QR Code tidak valid';
@@ -170,7 +175,7 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <QRScanner onScanResult={handleQRScan} />
+            <QRScanner onScanResult={handleQRScan} autoStartCamera={true} />
             <Button
               variant="outline"
               onClick={() => setShowQRScanner(false)}
@@ -200,7 +205,7 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="email" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="email" className="text-xs">
                 <Mail className="h-4 w-4 mr-1" />
                 Admin/Petugas
@@ -208,10 +213,6 @@ export default function Login() {
               <TabsTrigger value="nik" className="text-xs">
                 <CreditCard className="h-4 w-4 mr-1" />
                 Penumpang
-              </TabsTrigger>
-              <TabsTrigger value="qr" className="text-xs">
-                <QrCode className="h-4 w-4 mr-1" />
-                QR Code
               </TabsTrigger>
             </TabsList>
 
@@ -230,14 +231,30 @@ export default function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={emailData.password}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={emailData.password}
+                      onChange={(e) => setEmailData(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
@@ -246,7 +263,7 @@ export default function Login() {
                       Masuk...
                     </>
                   ) : (
-                    'Masuk dengan Email'
+                    'Masuk'
                   )}
                 </Button>
               </form>
@@ -269,17 +286,8 @@ export default function Login() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nik-password">Password</Label>
-                  <Input
-                    id="nik-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={nikData.password}
-                    onChange={(e) => setNikData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                  />
-                </div>
+                {/* Password field hidden/removed for NIK login */}
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
@@ -289,6 +297,28 @@ export default function Login() {
                   ) : (
                     'Masuk dengan NIK'
                   )}
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Atau
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowQRScanner(true)}
+                  disabled={loading}
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Scan QR Code
                 </Button>
               </form>
               <div className="mt-4 text-center">
@@ -302,22 +332,6 @@ export default function Login() {
                     Daftar sekarang
                   </Button>
                 </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="qr">
-              <div className="text-center space-y-4">
-                <p className="text-sm text-gray-600">
-                  Gunakan QR Code yang ada di kartu Anda untuk login cepat
-                </p>
-                <Button
-                  onClick={() => setShowQRScanner(true)}
-                  className="w-full"
-                  disabled={loading}
-                >
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Buka Scanner QR
-                </Button>
               </div>
             </TabsContent>
           </Tabs>

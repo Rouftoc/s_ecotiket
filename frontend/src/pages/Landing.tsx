@@ -8,7 +8,7 @@ import poster1 from '@/assets/poster1.png';
 import poster2 from '@/assets/poster2.png';
 import poster3 from '@/assets/poster3.png';
 import poster4 from '@/assets/poster4.png';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Recycle,
   Bus,
@@ -18,14 +18,63 @@ import {
   QrCode,
   ChevronLeft,
   ChevronRight,
-  Menu, 
-  X     
+  Menu,
+  X,
+  Quote,
+  Newspaper,
+  Calendar,
+  ArrowRight,
+  Wallet,
+  Sprout,
+  ShieldCheck
 } from 'lucide-react';
+import { newsAPI } from '@/lib/api/news';
+import { NewsItem } from '@/types/dashboard';
+import { BOTTLE_RATES } from '@/lib/constants';
 
 export default function Landing() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [featuredNews, setFeaturedNews] = useState<NewsItem[]>([]);
+  const [latestNews, setLatestNews] = useState<NewsItem[]>([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+  // const [posters, setPosters] = useState<Poster[]>([]); // Dynamic state removed
+  const [slides, setSlides] = useState<any[]>([]); // Initialize slides as a state variable
+
+  useEffect(() => {
+    const loadContent = async () => {
+      try {
+        const [newsData] = await Promise.all([
+          newsAPI.getLatestNews()
+        ]);
+
+        // Format news for carousel
+        const newsSlides = newsData.filter(n => n.is_featured).map(news => ({
+          url: news.image ? `http://localhost:5000/uploads/news/${news.image}` : heroImage1,
+          title: news.title,
+          desc: news.content.substring(0, 100) + '...',
+          isNews: true,
+          id: news.id_news
+        }));
+
+        // Merge static hero images with featured news if available
+        if (newsSlides.length > 0) {
+          setSlides([...newsSlides, ...heroImages]);
+        } else {
+          setSlides(heroImages); // Fallback to only hero images if no featured news
+        }
+
+        setLatestNews(newsData.filter(n => !n.is_featured).slice(0, 3)); // Keep latest news logic
+      } catch (err) {
+        console.error("Failed to load content", err);
+      } finally {
+        setLoadingNews(false);
+      }
+    };
+
+    loadContent();
+  }, []);
 
   const heroImages = [
     {
@@ -45,7 +94,15 @@ export default function Landing() {
     }
   ];
 
-  const posters = [poster1, poster2, poster3, poster4];
+  // Use 'slides' instead of 'heroImages' for logic below
+
+  // const posters = []; // Dynamic posters removed as per request
+  const posters = [
+    { id_poster: 1, image: poster1, link: 'https://instagram.com', title: 'Poster 1' },
+    { id_poster: 2, image: poster2, link: 'https://instagram.com', title: 'Poster 2' },
+    { id_poster: 3, image: poster3, link: 'https://instagram.com', title: 'Poster 3' },
+    { id_poster: 4, image: poster4, link: 'https://instagram.com', title: 'Poster 4' }
+  ];
 
   const uniqueTestimonials = [
     { quote: 'Sangat membantu! Sekarang saya bisa naik bus gratis dengan menukar botol-botol bekas di rumah.', name: 'Ibu Sari Wati', role: 'Ibu Rumah Tangga', initials: 'SW' },
@@ -70,26 +127,41 @@ export default function Landing() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleProfileClick = () => {
+    if (user.role === 'admin') navigate('/admin');
+    else if (user.role === 'petugas') navigate('/petugas');
+    else navigate('/penumpang');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans overflow-x-hidden">
-      
+
       <nav className="bg-white shadow-sm border-b sticky top-0 z-50 animate-fadeIn">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
@@ -99,15 +171,53 @@ export default function Landing() {
 
             <div className="hidden md:flex items-center space-x-8">
               <a href="#beranda" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Beranda</a>
-              <a href="#cara-kerja" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Cara Kerja</a>
-              <a href="#keuntungan" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Keuntungan</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Testimoni</a>
-              <a href="#kontak" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Kontak</a>
+              <a
+                href="/berita"
+                onClick={(e) => { e.preventDefault(); navigate('/berita'); }}
+                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
+              >
+                Berita
+              </a>
+              <a
+                href="/informasi/cara-kerja"
+                onClick={(e) => { e.preventDefault(); navigate('/informasi/cara-kerja'); }}
+                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
+              >
+                Cara Kerja
+              </a>
+              <a
+                href="/informasi/nilai-tukar"
+                onClick={(e) => { e.preventDefault(); navigate('/informasi/nilai-tukar'); }}
+                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
+              >
+                Nilai Tukar
+              </a>
+              <a
+                href="/informasi/keuntungan"
+                onClick={(e) => { e.preventDefault(); navigate('/informasi/keuntungan'); }}
+                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
+              >
+                Keuntungan
+              </a>
             </div>
 
             <div className="hidden md:flex items-center space-x-4">
-              <button onClick={() => navigate('/login')} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">Masuk</button>
-              <button onClick={() => navigate('/register')} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">Daftar</button>
+              {user ? (
+                <button
+                  onClick={handleProfileClick}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-full transition-colors border border-green-200"
+                >
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    {user.name.charAt(0)}
+                  </div>
+                  <span className="font-medium text-sm max-w-[100px] truncate">{user.name}</span>
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => navigate('/login')} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">Masuk</button>
+                  <button onClick={() => navigate('/register')} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">Daftar</button>
+                </>
+              )}
             </div>
 
             <div className="md:hidden z-50 flex items-center">
@@ -119,178 +229,285 @@ export default function Landing() {
         </div>
 
         <div className={`fixed inset-0 bg-white z-40 transform transition-transform duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ top: '64px' }}>
-            <div className="flex flex-col p-6 space-y-6 h-full overflow-y-auto pb-24">
-              <a href="#beranda" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Beranda</a>
-              <a href="#cara-kerja" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Cara Kerja</a>
-              <a href="#keuntungan" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Keuntungan</a>
-              <a href="#testimonials" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Testimoni</a>
-              <a href="#kontak" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Kontak</a>
-              <div className="flex flex-col space-y-3 pt-4">
-                <button onClick={() => { navigate('/login'); toggleMobileMenu(); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-medium">Masuk</button>
-                <button onClick={() => { navigate('/register'); toggleMobileMenu(); }} className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-lg font-medium">Daftar</button>
-              </div>
+          <div className="flex flex-col p-6 space-y-6 h-full overflow-y-auto pb-24">
+            <a href="#beranda" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Beranda</a>
+            <a
+              href="/berita"
+              onClick={(e) => { e.preventDefault(); navigate('/berita'); toggleMobileMenu(); }}
+              className="text-xl font-medium text-gray-800 border-b pb-2"
+            >
+              Berita
+            </a>
+            <a
+              href="/informasi/cara-kerja"
+              onClick={(e) => { e.preventDefault(); navigate('/informasi/cara-kerja'); toggleMobileMenu(); }}
+              className="text-xl font-medium text-gray-800 border-b pb-2"
+            >
+              Cara Kerja
+            </a>
+            <a
+              href="/informasi/nilai-tukar"
+              onClick={(e) => { e.preventDefault(); navigate('/informasi/nilai-tukar'); toggleMobileMenu(); }}
+              className="text-xl font-medium text-gray-800 border-b pb-2"
+            >
+              Nilai Tukar
+            </a>
+            <a
+              href="/informasi/keuntungan"
+              onClick={(e) => { e.preventDefault(); navigate('/informasi/keuntungan'); toggleMobileMenu(); }}
+              className="text-xl font-medium text-gray-800 border-b pb-2"
+            >
+              Keuntungan
+            </a>
+            <div className="flex flex-col space-y-3 pt-4">
+              {user ? (
+                <button
+                  onClick={() => { handleProfileClick(); toggleMobileMenu(); }}
+                  className="w-full px-4 py-3 bg-green-50 text-green-700 border border-green-200 rounded-lg text-lg font-medium flex items-center justify-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    {user.name.charAt(0)}
+                  </div>
+                  Dashboard Saya
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => { navigate('/login'); toggleMobileMenu(); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-medium">Masuk</button>
+                  <button onClick={() => { navigate('/register'); toggleMobileMenu(); }} className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-lg font-medium">Daftar</button>
+                </>
+              )}
             </div>
+          </div>
         </div>
       </nav>
 
       <section id="beranda" className="py-0 bg-white">
         <div className="w-full relative group">
           <div className="relative w-full h-[500px] md:h-[650px] lg:h-[calc(100vh-80px)] overflow-hidden bg-gray-900">
-            {heroImages.map((img, idx) => (
+            {slides.map((img, idx) => (
               <div key={idx} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                 <img src={img.url} alt={img.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
-                <div className="absolute inset-0 container mx-auto px-4 flex flex-col justify-center h-full">
-                  <div className="max-w-xl text-white space-y-4 animate-slideInRight opacity-90 pl-4 md:pl-0">
-                      <div className="w-20 h-1 bg-green-500 mb-4"></div>
-                      <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight">{img.title}</h1>
-                      <p className="text-base md:text-lg text-gray-200 leading-relaxed">{img.desc}</p>
-                      <div className="pt-4">
-                        <button onClick={() => navigate('/register')} className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-all transform hover:translate-x-2">Mulai Sekarang</button>
-                      </div>
+                {/* Improved Gradient Overlay for better text readability */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent"></div>
+                <div className="absolute inset-0 container mx-auto px-6 md:px-12 flex flex-col justify-center h-full">
+                  <div className="max-w-3xl text-white space-y-6 animate-slideInRight opacity-90">
+                    <div className="w-24 h-1.5 bg-green-500 mb-6 rounded-full"></div>
+                    {/* Badge for News */}
+                    {(img as any).isNews && (
+                      <span className="inline-block px-4 py-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs md:text-sm font-bold tracking-wider uppercase rounded-full mb-2 shadow-lg border border-green-500/30">
+                        Featured News
+                      </span>
+                    )}
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight drop-shadow-sm">
+                      {img.title}
+                    </h1>
+                    <p className="text-lg md:text-xl text-gray-200 leading-relaxed max-w-2xl drop-shadow-sm">
+                      {img.desc}
+                    </p>
+                    <div className="pt-6 flex flex-wrap gap-4">
+                      {!(img as any).isNews ? (
+                        <button onClick={() => navigate('/register')} className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all transform hover:translate-x-1 hover:shadow-lg shadow-green-600/20 text-lg">
+                          Mulai Sekarang
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/news/${(img as any).id}`)}
+                          className="px-8 py-4 bg-white text-green-900 hover:bg-gray-100 font-bold rounded-lg transition-all transform hover:translate-x-1 shadow-lg text-lg flex items-center gap-2"
+                        >
+                          Baca Selengkapnya
+                          <ArrowRight className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
-            <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center border border-white/30 text-white bg-black/20 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full md:rounded-md backdrop-blur-sm"><ChevronLeft className="h-6 w-6" /></button>
-            <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center border border-white/30 text-white bg-black/20 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full md:rounded-md backdrop-blur-sm"><ChevronRight className="h-6 w-6" /></button>
-            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-20">
-              {heroImages.map((_, idx) => (
-                <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-2 transition-all duration-300 rounded-full ${idx === currentSlide ? 'bg-green-500 w-8' : 'bg-white/50 w-2 hover:bg-white'}`} />
+            {/* Improved Navigation Buttons - Repositioned to Bottom Right to avoid text overlap */}
+            <div className="hidden md:flex absolute bottom-10 right-10 z-20 gap-4">
+              <button onClick={prevSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
+                <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
+              </button>
+              <button onClick={nextSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
+                <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+            <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-3 z-20">
+              {slides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`h-2.5 transition-all duration-500 rounded-full shadow-sm ${idx === currentSlide ? 'bg-green-500 w-10' : 'bg-white/40 w-2.5 hover:bg-white/80'}`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="cara-kerja" className="py-20 bg-white">
+
+
+      {/* BERITA SECTION */}
+      <section id="berita" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-fadeInUp">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Cara Kerja Eco-Tiket</h2>
-            <p className="text-xl text-gray-600">Proses sederhana untuk mendapatkan tiket bus gratis</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {[
-              { icon: Users, title: '1. Daftar & Dapatkan QR', desc: 'Daftar akun dan dapatkan QR Code unik Anda untuk memulai program', delay: '0s' },
-              { icon: Recycle, title: '2. Kumpulkan Botol', desc: 'Kumpulkan botol plastik bekas dan bawa ke stand Eco-Tiket terdekat', delay: '0.2s' },
-              { icon: Bus, title: '3. Tukar Jadi Tiket', desc: 'Tukar botol dengan tiket bus dan nikmati perjalanan gratis!', delay: '0.4s' }
-            ].map((item, idx) => (
-              <div key={idx} className="text-center animate-fadeInUp transform hover:scale-105 transition-transform duration-300" style={{ animationDelay: item.delay }}>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 hover:bg-green-200">
-                  <item.icon className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-600">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="bg-gray-50 rounded-2xl p-8 animate-fadeInUp">
-            <h3 className="text-2xl font-bold text-center mb-8">Nilai Tukar Botol ke Tiket</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
-              {[
-                { key: 'botol_jumbo', label: 'Botol Jumbo', color: 'text-green-600' },
-                { key: 'botol_besar', label: 'Botol Besar', color: 'text-green-600' },
-                { key: 'botol_sedang', label: 'Botol Sedang', color: 'text-green-600' },
-                { key: 'botol_kecil', label: 'Botol Kecil', color: 'text-green-600' },
-                { key: 'gelas_cup', label: 'Gelas Cup', color: 'text-green-600' }
-              ].map((item, idx) => {
-                const rate = conversionRates[item.key];
-                return (
-                  <Card key={idx} className="transform hover:scale-105 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: `${idx * 0.1}s` }}>
-                    <CardHeader className="text-center pb-2">
-                      <CardTitle className="text-lg">{item.label}</CardTitle>
-                      <CardDescription>{rate.size}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <div className={`text-3xl font-bold mb-2 ${item.color}`}>
-                        {rate.bottles}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        = {rate.tickets} tiket
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+          <div className="flex justify-between items-end mb-12 animate-fadeInUp">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Berita & Pengumuman</h2>
+              <p className="text-lg text-gray-600">Informasi terbaru seputar Eco-Tiket dan lingkungan.</p>
             </div>
-            <div className="mt-12 text-center">
-              <h3 className="text-2xl font-bold mb-8">Informasi Lebih Lanjut</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
-                {posters.map((poster, idx) => (
-                  <div key={idx} className="max-w-xs overflow-hidden rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 animate-fadeInUp" style={{ animationDelay: `${idx * 0.15}s` }}>
-                    <a href="https://www.instagram.com/p/DLfMGYZBBsd/?igsh=MWtyY3N2azhqNTV3Yw==" target="_blank" rel="noopener noreferrer">
-                      <img src={poster} alt={`Poster ${idx + 1}`} className="w-full h-auto object-cover" />
-                    </a>
+            {latestNews.length > 0 && (
+              <button
+                onClick={() => navigate('/berita')}
+                className="hidden md:flex items-center text-green-600 font-semibold hover:text-green-700"
+              >
+                Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {!loadingNews && latestNews.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+              <Newspaper className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">Belum ada berita terbaru.</p>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {latestNews.map((news, idx) => (
+              <Card
+                key={news.id_news}
+                className="overflow-hidden hover:shadow-lg transition-all duration-300 animate-fadeInUp group cursor-pointer"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+                onClick={() => navigate(`/news/${news.id_news}`)}
+              >
+                <div className="relative h-48 overflow-hidden">
+                  {news.image ? (
+                    <img
+                      src={`http://localhost:5000/uploads/news/${news.image}`}
+                      alt={news.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <Newspaper className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                      Berita
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+                <CardContent className="p-6">
+                  <div className="flex items-center text-sm text-gray-500 mb-3">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {new Date(news.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-green-600 transition-colors">
+                    {news.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                    {news.content}
+                  </p>
+                </CardContent>
+                <CardFooter className="p-6 pt-0">
+                  <span className="text-green-600 font-semibold text-sm flex items-center group-hover:underline">
+                    Baca Selengkapnya <ChevronRight className="h-4 w-4 ml-1" />
+                  </span>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center md:hidden">
+            <button
+              onClick={() => navigate('/berita')}
+              className="inline-flex items-center text-green-600 font-semibold hover:text-green-700"
+            >
+              Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
           </div>
         </div>
       </section>
 
-      <section id="keuntungan" className="py-20 bg-gray-50">
+
+
+
+
+      {/* ADDITIONAL INFO POSTERS */}
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-fadeInUp">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Keuntungan Bergabung</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Lebih dari sekadar transportasi gratis, ini adalah investasi untuk masa depan
-            </p>
+          <div className="text-center mb-12 animate-fadeInUp">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Galeri & Informasi</h2>
+            <p className="text-gray-600">Dokumentasi kegiatan dan poster informasi lainnya.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: Globe, title: 'Dampak Lingkungan', desc: 'Setiap botol yang didaur ulang mengurangi polusi dan melindungi ekosistem', delay: '0s' },
-              { icon: QrCode, title: 'Keamanan Terjamin', desc: 'Sistem QR Code yang aman dan terintegrasi dengan database terpusat', delay: '0.1s' },
-              { icon: CheckCircle, title: 'Proses Cepat', desc: 'Transaksi instan dengan scan QR Code, tidak perlu antri lama', delay: '0.2s' },
-              { icon: Users, title: 'Komunitas Peduli', desc: 'Bergabung dengan ribuan warga Banjarmasin yang peduli lingkungan', delay: '0.3s' }
-            ].map((item, idx) => (
-              <div key={idx} className="p-6 transform hover:scale-105 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: item.delay }}>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 hover:bg-green-200">
-                  <item.icon className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-center mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-center">{item.desc}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
+            {posters.map((poster, idx) => (
+              <div key={poster.id_poster} className="max-w-xs overflow-hidden rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 animate-fadeInUp cursor-pointer" style={{ animationDelay: `${idx * 0.15}s` }}>
+                <a href={poster.link} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={poster.image}
+                    alt={poster.title || `Poster ${idx + 1}`}
+                    className="w-full h-auto object-cover"
+                  />
+                </a>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="testimonials" className="py-20 bg-white overflow-hidden">
-        <div className="container mx-auto px-4 mb-10">
-          <div className="text-center animate-fadeInUp">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Kata Mereka</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Pengalaman nyata dari warga Banjarmasin yang telah merasakan manfaatnya
+      <section id="testimonials" className="py-24 bg-gradient-to-b from-white to-green-50/50 overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-green-200/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="container mx-auto px-4 mb-16 relative z-10">
+          <div className="text-center animate-fadeInUp max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">Kata Mereka</h2>
+            <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+              Dengarkan apa yang warga Banjarmasin katakan tentang perubahan positif ini.
             </p>
           </div>
         </div>
 
-        <div className="relative w-full">
-          <div 
-            className="flex gap-8 animate-scroll w-max"
-            style={{
-              maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)'
-            }}
+        <div className="relative w-full max-w-6xl mx-auto z-10 overflow-hidden rounded-2xl">
+          {/* Gradient Masks for smooth fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-20 md:w-32 bg-gradient-to-r from-white to-transparent z-20"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 md:w-32 bg-gradient-to-l from-white to-transparent z-20"></div>
+
+          <div
+            className="flex gap-6 animate-scroll w-max py-8"
           >
             {loopingTestimonials.map((testimonial, idx) => (
-              <Card key={idx} className="p-6 flex-shrink-0 w-[350px] transform hover:scale-105 transition-all duration-300 border-t-4 border-t-green-500 shadow-md">
-                <CardContent className="p-0">
-                  <p className="text-gray-700 mb-6 italic min-h-[80px]">
-                    "{testimonial.quote}"
-                  </p>
-                  <div className="flex items-center border-t pt-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-4">
-                      <span className="text-lg font-semibold">{testimonial.initials}</span>
+              <div key={idx} className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <Card className="relative p-6 flex-shrink-0 w-[300px] md:w-[320px] border-none shadow-xl bg-white/80 backdrop-blur-sm rounded-2xl transform transition-all duration-300 hover:-translate-y-2">
+                  <CardContent className="p-0">
+                    <Quote className="h-8 w-8 text-green-500/20 mb-3 absolute top-5 right-5" />
+                    <div className="flex flex-col h-full justify-between min-h-[140px]">
+                      <p className="text-gray-700 text-base leading-relaxed mb-4 italic relative z-10">
+                        "{testimonial.quote}"
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-auto">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center shadow-inner border-2 border-white">
+                          <span className="text-lg font-bold text-green-700">{testimonial.initials}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm">{testimonial.name}</h4>
+                          <span className="inline-block px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-medium rounded-full mt-1">
+                            {testimonial.role}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                      <p className="text-sm text-gray-600">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -299,7 +516,7 @@ export default function Landing() {
       <footer id="kontak" className="bg-white text-gray-900 py-12 border-t animate-fadeIn">
         <div className="container mx-auto px-4">
           <div className="mb-12">
-            <iframe width="100%" height="400" style={{ border: 0, borderRadius: '8px' }} loading="lazy" allowFullScreen src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3984.8245678901234!2d114.59!3d-3.33!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2de62e3b3b3b3b3b%3A0x1234567890abcdef!2sDinas%20Perhubungan%20Kota%20Banjarmasin!5e0!3m2!1sid!2sid!4v1234567890"></iframe>
+            <iframe width="100%" height="400" style={{ border: 0, borderRadius: '8px' }} loading="lazy" allowFullScreen src="https://maps.google.com/maps?q=Dinas+Perhubungan+Kota+Banjarmasin&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>
           </div>
           <div className="grid md:grid-cols-2 gap-12">
             <div className="animate-fadeInUp">
@@ -310,10 +527,10 @@ export default function Landing() {
               <h4 className="text-lg font-semibold mb-4">Dinas Perhubungan Kota Banjarmasin</h4>
               <p className="text-gray-600 mb-6">Jl. Karya Bakti No.54, Kuin Cerucuk, Kec. Banjarmasin Bar., Kota Banjarmasin, Kalimantan Selatan 70128</p>
               <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
+                <a href="#" className="w-10 h-10 bg-gray-800 rounded flex items-center justify-center text-white hover:bg-gray-900 transition-colors">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                 </a>
-                <a href="#" className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center text-white hover:bg-blue-600 transition-colors">
+                <a href="#" className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center text-white hover:bg-gray-800 transition-colors">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 002.856-3.915 9.964 9.964 0 01-2.824.856 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
                 </a>
                 <a href="#" className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white hover:bg-red-700 transition-colors">
@@ -346,6 +563,6 @@ export default function Landing() {
         /* Durasi diperlambat sedikit agar lebih enak dilihat */
         .animate-scroll { animation: scroll 40s linear infinite; }
       `}</style>
-    </div>
+    </div >
   );
 }

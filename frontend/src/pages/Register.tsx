@@ -8,12 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, UserPlus, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import ecotiketLogo from '@/assets/logo-eco.png';
-import QRGenerator from '@/components/QRGenerator';
+import logoEco from '@/assets/logo-eco.png';
+import logoEcoTiket from '@/assets/logo_ecotiket.png';
+import QRGenerator from '@/components/common/qr/QRGenerator';
 import { authAPI } from '@/lib/api';
 
 interface RegisteredUser {
-  id: number;
+  id_user: number;
   email?: string;
   nik?: string;
   name: string;
@@ -24,7 +25,8 @@ interface RegisteredUser {
   ticketsBalance: number;
   points: number;
   status: string;
-  token?: string; 
+  token?: string;
+  created_at?: string;
 }
 
 export default function Register() {
@@ -35,8 +37,6 @@ export default function Register() {
 
   const [formData, setFormData] = useState({
     nik: '',
-    password: '',
-    confirmPassword: '',
     name: '',
     phone: '',
     address: ''
@@ -48,8 +48,8 @@ export default function Register() {
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.password || !formData.nik) {
-      setError('Nama, NIK, dan password harus diisi');
+    if (!formData.name || !formData.nik) {
+      setError('Nama dan NIK harus diisi');
       return false;
     }
 
@@ -58,22 +58,12 @@ export default function Register() {
       return false;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password minimal 6 karakter');
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Konfirmasi password tidak cocok');
-      return false;
-    }
-
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -82,7 +72,6 @@ export default function Register() {
     try {
       const userData = {
         nik: formData.nik,
-        password: formData.password,
         name: formData.name,
         role: 'penumpang', // Role is hardcoded here
         phone: formData.phone || undefined,
@@ -90,14 +79,14 @@ export default function Register() {
       };
 
       const response = await authAPI.register(userData);
-      
+
       if (!response.user || !response.token) {
         throw new Error('Invalid response from server');
       }
 
       const userWithToken = { ...response.user, token: response.token };
       setRegisteredUser(userWithToken as RegisteredUser);
-      
+
       toast.success('Registrasi berhasil!');
 
     } catch (error) {
@@ -122,6 +111,10 @@ export default function Register() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            {/* UPDATE: Logo ditampilkan saat sukses registrasi */}
+            <div className="flex items-center justify-center mb-2">
+              <img src={logoEcoTiket} alt="Logo EcoTiket" className="h-16" />
+            </div>
             <CardTitle className="text-green-700">Registrasi Berhasil!</CardTitle>
             <CardDescription>
               Akun Anda telah berhasil dibuat
@@ -130,7 +123,8 @@ export default function Register() {
           <CardContent className="space-y-6">
             <div className="text-center">
               {registeredUser.qrCode ? (
-                <QRGenerator value={registeredUser.qrCode} logoSrc={ecotiketLogo} />
+                // UPDATE: Menggunakan logoEcoTiket untuk QR Generator juga
+                <QRGenerator value={registeredUser.qrCode} logoSrc={logoEco} />
               ) : (
                 <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mx-auto">
                   <p className="text-gray-500">QR Code tidak tersedia</p>
@@ -173,8 +167,8 @@ export default function Register() {
               <Button onClick={handleLoginRedirect} className="w-full">
                 Masuk ke Dashboard
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => navigate('/login')}
                 className="w-full"
               >
@@ -191,13 +185,10 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-green-700">
-            <UserPlus className="h-6 w-6" />
-            Daftar Akun Penumpang
-          </CardTitle>
-          <CardDescription>
-            Buat akun untuk menggunakan sistem Eco-Tiket
-          </CardDescription>
+          {/* UPDATE: Logo ditambahkan di sini */}
+          <div className="flex items-center justify-center mb-4">
+            <img src={logoEcoTiket} alt="Logo EcoTiket" className="h-20" />
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -230,29 +221,7 @@ export default function Register() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Minimal 6 karakter"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Konfirmasi Password *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Ulangi password"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                required
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">Nomor Telepon</Label>
@@ -296,8 +265,8 @@ export default function Register() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Sudah punya akun?{' '}
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="p-0 h-auto font-normal"
                 onClick={() => navigate('/login')}
               >
@@ -307,8 +276,8 @@ export default function Register() {
           </div>
 
           <div className="mt-4 text-center">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => navigate('/')}
               className="text-sm"
             >
