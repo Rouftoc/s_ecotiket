@@ -4,7 +4,8 @@ import Swal from 'sweetalert2';
 import { locationsAPI } from '@/lib/api';
 import { Location } from '@/types/dashboard';
 import { LocationsTab } from '@/components/admin/tabs/LocationsTab';
-import { LocationForm } from '@/components/admin/forms/LocationForm';
+import { CreateLocation, CreateLocationData } from '@/components/admin/forms/locations/CreateLocation';
+import { EditLocation, EditLocationData } from '@/components/admin/forms/locations/EditLocation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function LocationManager() {
@@ -32,7 +33,7 @@ export default function LocationManager() {
         }
     };
 
-    const handleAddLocation = async (data: Omit<Location, 'id_location'>) => {
+    const handleAddLocation = async (data: CreateLocationData) => {
         try {
             await locationsAPI.createLocation(data as any);
             toast.success('Lokasi ditambahkan');
@@ -43,15 +44,14 @@ export default function LocationManager() {
         }
     };
 
-    const handleUpdateLocation = async (data: Location) => {
+    const handleUpdateLocation = async (data: EditLocationData) => {
+        if (!editingLocation) return;
         try {
-            console.log('Updating location:', data);
-            await locationsAPI.updateLocation(data.id_location, data as any);
+            await locationsAPI.updateLocation(editingLocation.id_location, data as any);
             toast.success('Lokasi diupdate');
             setEditingLocation(null);
             loadLocations();
         } catch (error) {
-            console.error('Update error:', error);
             toast.error(`Gagal update lokasi: ${(error as Error).message}`);
         }
     };
@@ -62,7 +62,8 @@ export default function LocationManager() {
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
-            confirmButtonText: "Ya",
+            cancelButtonColor: "#1f2937",
+            confirmButtonText: "Ya, Hapus",
             cancelButtonText: "Batal"
         }).then(async (result) => {
             if (result.isConfirmed) {
@@ -93,7 +94,7 @@ export default function LocationManager() {
                     <DialogHeader>
                         <DialogTitle>Tambah Lokasi</DialogTitle>
                     </DialogHeader>
-                    <LocationForm
+                    <CreateLocation
                         onSubmit={handleAddLocation}
                         onCancel={() => setIsAddingLocation(false)}
                     />
@@ -107,9 +108,10 @@ export default function LocationManager() {
                         <DialogTitle>Edit Lokasi</DialogTitle>
                     </DialogHeader>
                     {editingLocation && (
-                        <LocationForm
+                        <EditLocation
+                            key={editingLocation.id_location}
                             location={editingLocation}
-                            onSubmit={(data) => handleUpdateLocation({ ...editingLocation, ...data })}
+                            onSubmit={handleUpdateLocation}
                             onCancel={() => setEditingLocation(null)}
                         />
                     )}

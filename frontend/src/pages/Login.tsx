@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,11 @@ import logoEcoTiket from '@/assets/logo_ecotiket.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, QrCode, Mail, CreditCard, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, QrCode, Mail, CreditCard, Eye, EyeOff, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import QRScanner from '@/components/common/qr/QRScanner';
 import { authAPI } from '@/lib/api';
+import jsQR from 'jsqr';
+import QRScanner from '@/components/common/qr/QRScanner';
 
 interface UserData {
   id: number;
@@ -33,19 +34,43 @@ export default function Login() {
   const [error, setError] = useState('');
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Removed: Force clean state on mount was causing session loss on refresh
-  // User session should persist until explicit logout
+  const [emailData, setEmailData] = useState({ email: '', password: '' });
+  const [nikData, setNikData] = useState({ nik: '' });
 
-  const [emailData, setEmailData] = useState({
-    email: '',
-    password: ''
-  });
+  const handleQRFromGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const [nikData, setNikData] = useState({
-    nik: '',
-    password: ''
-  });
+    setLoading(true);
+    setError('');
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(bitmap, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const result = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (!result) {
+        setError('QR Code tidak ditemukan dalam gambar. Pastikan gambar jelas dan berisi QR Code.');
+        setLoading(false);
+        return;
+      }
+
+      await handleQRScan(result.data);
+    } catch {
+      setError('Gagal membaca gambar. Coba gambar lain.');
+      setLoading(false);
+    } finally {
+      // Reset input agar bisa pilih file yang sama lagi
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +175,7 @@ export default function Login() {
       } else if (response.user.role === 'petugas') {
         navigate('/petugas');
       } else {
-        navigate('/');
+        navigate('/penumpang');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'QR Code tidak valid';
@@ -166,6 +191,9 @@ export default function Login() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <img src={logoEcoTiket} alt="Logo" className="h-16" />
+            </div>
             <CardTitle className="flex items-center justify-center gap-2">
               <QrCode className="h-6 w-6" />
               Scan QR Code
@@ -175,7 +203,7 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <QRScanner onScanResult={handleQRScan} autoStartCamera={true} />
+            <QRScanner onScanResult={handleQRScan} autoStart={true} cameraOnly={true} />
             <Button
               variant="outline"
               onClick={() => setShowQRScanner(false)}
@@ -320,6 +348,28 @@ export default function Login() {
                   <QrCode className="mr-2 h-4 w-4" />
                   Scan QR Code
                 </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memproses...</>
+                  ) : (
+                    <><ImageIcon className="mr-2 h-4 w-4" />Galeri</>
+                  )}
+                </Button>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleQRFromGallery}
+                />
               </form>
               <div className="mt-4 text-center">
                 <p className="text-sm text-gray-600">

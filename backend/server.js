@@ -61,6 +61,8 @@ app.use('/api/news', newsRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/bottle-rates', require('./routes/bottleRates'));
+app.use('/api/shifts', require('./routes/shifts'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

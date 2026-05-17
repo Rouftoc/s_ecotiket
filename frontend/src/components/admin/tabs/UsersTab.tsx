@@ -158,7 +158,7 @@ export function UsersTab({
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
                                                     {userData.role !== 'admin' && (
-                                                        <Button size="sm" variant="outline" onClick={() => onDeleteUser(userData.id_user)}>
+                                                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDeleteUser(userData.id_user)}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     )}

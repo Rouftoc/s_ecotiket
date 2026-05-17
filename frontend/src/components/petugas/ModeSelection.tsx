@@ -35,7 +35,7 @@ export default function ModeSelection({ selectedLocation, startShift }: ModeSele
 
                     <div className="text-center p-4 sm:p-6 border-2 border-dashed border-gray-200 rounded-lg">
                         <Bus className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4" />
-                        <h3 className="text-base sm:text-lg font-medium mb-2">Mode Karnet</h3>
+                        <h3 className="text-base sm:text-lg font-medium mb-2">Mode Kernet</h3>
                         <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                             Validasi tiket penumpang yang akan naik bus
                         </p>
@@ -45,7 +45,7 @@ export default function ModeSelection({ selectedLocation, startShift }: ModeSele
                             className="w-full text-sm"
                             disabled={!selectedLocation}
                         >
-                            Mulai Karnet
+                            Mulai Kernet
                         </Button>
                     </div>
                 </div>

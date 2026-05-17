@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { notifyAllAdmins } = require('../utils/notificationHelper');
 
 // Helper to get or create open session
 async function getOpenSession(userId) {
@@ -59,6 +60,15 @@ exports.sendMessage = async (req, res) => {
                 "INSERT INTO chat_messages (session_id, sender_type, message) VALUES (?, 'bot', ?)",
                 [session.id_session, botReply]
             );
+        } else {
+            // Tidak ada bot reply → notifikasi admin ada pesan baru
+            const [userInfo] = await db.pool.query('SELECT name FROM users WHERE id_user = ?', [userId]);
+            const userName = userInfo[0]?.name || 'Penumpang';
+            notifyAllAdmins({
+                type: 'info',
+                title: 'Pesan Chat Baru',
+                message: `${userName} mengirim pesan: "${message.substring(0, 60)}${message.length > 60 ? '...' : ''}"`
+            }).catch(() => {});
         }
 
         res.json({ status: 'sent', botReply });
@@ -138,6 +148,30 @@ exports.adminReply = async (req, res) => {
         );
 
         res.json({ status: 'sent' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.closeSession = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        const [sessions] = await db.pool.query(
+            "SELECT id_session FROM chat_sessions WHERE id_session = ?",
+            [sessionId]
+        );
+
+        if (sessions.length === 0) {
+            return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+        }
+
+        await db.pool.query(
+            "UPDATE chat_sessions SET status = 'closed' WHERE id_session = ?",
+            [sessionId]
+        );
+
+        res.json({ success: true, message: 'Sesi chat berhasil ditutup' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

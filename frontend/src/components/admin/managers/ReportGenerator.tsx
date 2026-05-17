@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { UserRecord, Transaction } from '@/types/dashboard';
+import logoKotaBjm from '@/assets/logo_kotabjm.png';
 
 interface ReportGeneratorProps {
   users: UserRecord[];
@@ -159,7 +160,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
       case 'bottle_transactions':
         return {
           headers: [['ID Transaksi', 'Tanggal', 'Nama Penumpang', 'Nama Petugas', 'Lokasi', 'Tipe Botol', 'Jumlah', 'Poin Didapat']],
-          data: processedData.map((tx: any) => [tx.id_transaction, new Date(tx.created_at).toLocaleString('id-ID'), tx.userName, tx.petugasName, tx.location, tx.bottle_type, tx.bottles_count, tx.points_earned]),
+          data: processedData.map((tx: any) => [tx.id_transaction, new Date(tx.created_at).toLocaleString('id-ID'), tx.userName, tx.petugasName, tx.location_name, tx.bottle_type, tx.bottles_count, tx.points_earned]),
           filename: 'laporan_transaksi_botol'
         };
       case 'ticket_transactions':
@@ -170,7 +171,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
             new Date(tx.created_at).toLocaleString('id-ID'),
             tx.userName,
             tx.petugasName,
-            tx.location,
+            tx.location_name,
             Math.abs(tx.tickets_change)
           ]),
           filename: 'laporan_transaksi_tiket'
@@ -184,7 +185,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
             tx.petugasName,
             tx.type === 'bottle_exchange' ? 'Tukar Botol' : 'Validasi Tiket',
             tx.type === 'bottle_exchange' ? `${tx.bottles_count || 0} ${tx.bottle_type || ''}` : `${Math.abs(tx.tickets_change)} tiket`,
-            tx.location,
+            tx.location_name,
             tx.userName
           ]),
           filename: 'laporan_aktivitas_petugas'
@@ -206,7 +207,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
     }
   };
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
     setLoading(true);
     try {
       const { headers, data, filename } = getExportConfig();
@@ -224,17 +225,76 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
         XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
         XLSX.writeFile(wb, `${fullFilename}.${format === 'csv' ? 'csv' : 'xlsx'}`);
       } else if (format === 'pdf') {
-        const doc = new jsPDF();
-        doc.text(`Laporan Eco-Tiket: ${filename.replace(/_/g, ' ')}`, 14, 20);
-        doc.setFontSize(10);
-        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 26);
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
 
+        // Load logo kota Banjarmasin
+        const logoImg = await new Promise<string>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d')!.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => resolve('');
+          img.src = logoKotaBjm;
+        });
+
+        // ── KOP SURAT ──
+        const kopStartY = 10;
+        const logoSize = 22;
+        const logoX = 14;
+        const logoY = kopStartY;
+
+        if (logoImg) {
+          doc.addImage(logoImg, 'PNG', logoX, logoY, logoSize, logoSize);
+        }
+
+        const textX = logoX + logoSize + 5;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text('PEMERINTAH KOTA BANJARMASIN', textX, kopStartY + 5);
+
+        doc.setFontSize(16);
+        doc.text('DINAS PERHUBUNGAN', textX, kopStartY + 12);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('Jl. Karya Bhakti No. 54 Pasir Mas Banjarmasin, Telp/Fax (0511) 3352543', textX, kopStartY + 18);
+        doc.text('Kota Banjarmasin, Kode Pos 70129', textX, kopStartY + 23);
+
+        // Garis tebal + tipis di bawah kop
+        const lineY = kopStartY + logoSize + 3;
+        doc.setLineWidth(0.8);
+        doc.line(14, lineY, pageWidth - 14, lineY);
+        doc.setLineWidth(0.3);
+        doc.line(14, lineY + 1.5, pageWidth - 14, lineY + 1.5);
+
+        // ── JUDUL LAPORAN ──
+        const titleY = lineY + 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        const reportTitle = `LAPORAN ${filename.replace(/_/g, ' ').toUpperCase()}`;
+        doc.text(reportTitle, pageWidth / 2, titleY, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, pageWidth / 2, titleY + 6, { align: 'center' });
+
+        // ── TABEL DATA ──
         autoTable(doc, {
           head: headers,
           body: data,
-          startY: 35,
-          headStyles: { fillColor: [34, 197, 94] },
+          startY: titleY + 12,
+          headStyles: { fillColor: [34, 197, 94], fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 8.5 },
+          alternateRowStyles: { fillColor: [245, 255, 245] },
+          margin: { left: 14, right: 14 },
         });
+
         doc.save(`${fullFilename}.pdf`);
       }
       toast.success(`Laporan berhasil diexport ke ${format.toUpperCase()}`);
@@ -321,7 +381,7 @@ export default function ReportGenerator({ users, transactions }: ReportGenerator
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FileText className="h-5 w-5 mr-2" />Generator Laporan
+            <FileText className="h-5 w-5 mr-2" />Laporan
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

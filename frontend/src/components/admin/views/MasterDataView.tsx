@@ -5,16 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Database, Loader2, Edit, Trash2, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { BottleRateForm, BottleRateFormData } from '@/components/admin/forms/BottleRateForm';
-
-interface BottleRate {
-    id_bottle_rate: number;
-    bottle_type: string;
-    bottles_required: number;
-    tickets_earned: number;
-    points_earned: number;
-    updated_at: string;
-}
+import Swal from 'sweetalert2';
+import { CreateBottleRate, CreateBottleRateData } from '@/components/admin/forms/bottle-rates/CreateBottleRate';
+import { EditBottleRate, EditBottleRateData } from '@/components/admin/forms/bottle-rates/EditBottleRate';
+import { bottleRatesAPI, BottleRate } from '@/lib/api/bottleRates';
 
 export default function MasterDataView() {
     const [rates, setRates] = useState<BottleRate[]>([]);
@@ -30,11 +24,8 @@ export default function MasterDataView() {
 
     const fetchRates = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/bottle-rates');
-            if (response.ok) {
-                const data = await response.json();
-                setRates(data);
-            }
+            const data = await bottleRatesAPI.getAll();
+            setRates(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch rates', error);
             toast.error('Gagal mengambil data botol');
@@ -56,53 +47,41 @@ export default function MasterDataView() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus jenis botol ini?')) return;
-
-        try {
-            const response = await fetch(`http://localhost:5000/api/bottle-rates/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                setRates(rates.filter(r => r.id_bottle_rate !== id));
-                toast.success('Jenis botol berhasil dihapus');
-            } else {
-                throw new Error('Failed delete');
+        Swal.fire({
+            title: 'Hapus Jenis Botol?',
+            text: 'Data tidak bisa dikembalikan setelah dihapus!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#1f2937',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await bottleRatesAPI.delete(id);
+                    setRates(rates.filter(r => r.id_bottle_rate !== id));
+                    toast.success('Jenis botol berhasil dihapus');
+                } catch (error) {
+                    toast.error('Gagal menghapus data');
+                }
             }
-        } catch (error) {
-            toast.error('Gagal menghapus data');
-        }
+        });
     };
 
-    const handleSave = async (data: BottleRateFormData) => {
+    const handleSave = async (data: CreateBottleRateData | EditBottleRateData) => {
         setSaving(true);
         try {
-            const url = isCreating
-                ? 'http://localhost:5000/api/bottle-rates'
-                : `http://localhost:5000/api/bottle-rates/${editingRate?.id_bottle_rate}`;
-
-            const method = isCreating ? 'POST' : 'PUT';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                const savedRate = await response.json();
-                if (isCreating) {
-                    setRates([...rates, savedRate]);
-                    toast.success('Jenis botol berhasil ditambahkan');
-                } else {
-                    setRates(rates.map(r => r.id_bottle_rate === savedRate.id_bottle_rate ? savedRate : r));
-                    toast.success('Data berhasil disimpan');
-                }
-                setIsDialogOpen(false);
+            if (isCreating) {
+                const savedRate = await bottleRatesAPI.create(data as CreateBottleRateData);
+                setRates([...rates, savedRate]);
+                toast.success('Jenis botol berhasil ditambahkan');
             } else {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to save');
+                const savedRate = await bottleRatesAPI.update(editingRate!.id_bottle_rate, data as EditBottleRateData);
+                setRates(rates.map(r => r.id_bottle_rate === savedRate.id_bottle_rate ? savedRate : r));
+                toast.success('Data berhasil disimpan');
             }
+            setIsDialogOpen(false);
         } catch (error: any) {
             toast.error(error.message || 'Gagal menyimpan data');
         } finally {
@@ -118,7 +97,7 @@ export default function MasterDataView() {
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <Database className="h-5 w-5" />
-                                Data Master
+                                Jenis Botol
                             </CardTitle>
                         </div>
                         <Button onClick={handleAdd} className="bg-black hover:bg-gray-800 text-white self-start md:self-center">
@@ -138,7 +117,7 @@ export default function MasterDataView() {
                                 <TableHeader className="bg-gray-50">
                                     <TableRow>
                                         <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jenis Botol</TableHead>
-                                        <TableHead className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Jumlah Botol</TableHead>
+                                        <TableHead className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Jumlah Botol Diperlukan</TableHead>
                                         <TableHead className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiket Didapat</TableHead>
                                         <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Terakhir Diupdate</TableHead>
                                         <TableHead className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</TableHead>
@@ -197,7 +176,7 @@ export default function MasterDataView() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{isCreating ? 'Tambah Jenis Botol' : 'Edit Konfigurasi Botol'}</DialogTitle>
+                        <DialogTitle>{isCreating ? 'Tambah Jenis Botol' : 'Edit Jenis Botol'}</DialogTitle>
                         <DialogDescription>
                             {isCreating
                                 ? 'Tambahkan jenis botol baru dan atur nilai tukarnya.'
@@ -206,13 +185,20 @@ export default function MasterDataView() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <BottleRateForm
-                        initialData={editingRate}
-                        isCreating={isCreating}
-                        isSaving={saving}
-                        onSave={handleSave}
-                        onCancel={() => setIsDialogOpen(false)}
-                    />
+                    {isCreating ? (
+                        <CreateBottleRate
+                            isSaving={saving}
+                            onSave={handleSave}
+                            onCancel={() => setIsDialogOpen(false)}
+                        />
+                    ) : (
+                        <EditBottleRate
+                            initialData={editingRate ?? {}}
+                            isSaving={saving}
+                            onSave={handleSave}
+                            onCancel={() => setIsDialogOpen(false)}
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

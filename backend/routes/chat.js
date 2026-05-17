@@ -10,5 +10,6 @@ router.get('/messages', authenticateToken, chatController.getMessages);
 router.get('/sessions', authenticateToken, isAdmin, chatController.getAllSessions);
 router.get('/sessions/:sessionId/messages', authenticateToken, isAdmin, chatController.getSessionMessages);
 router.post('/sessions/:sessionId/reply', authenticateToken, isAdmin, chatController.adminReply);
+router.patch('/sessions/:sessionId/close', authenticateToken, isAdmin, chatController.closeSession);
 
 module.exports = router;

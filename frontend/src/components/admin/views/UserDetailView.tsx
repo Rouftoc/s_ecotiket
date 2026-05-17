@@ -10,6 +10,7 @@ import { ArrowLeft, Edit, Save, Trash2, User, CreditCard, Mail, Phone, QrCode, D
 import QRGenerator from '@/components/common/qr/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
+import { SendRewardNotification } from '../shared/SendRewardNotification';
 import { UserRecord, Transaction } from '@/types/dashboard';
 import { transactionsAPI } from '@/lib/api';
 import { toast } from 'sonner';
@@ -292,6 +293,9 @@ export function UserDetailView({
                             <Card>
                                 <CardHeader><CardTitle>Aksi</CardTitle></CardHeader>
                                 <CardContent className="space-y-2">
+                                    {user.role === 'penumpang' && (
+                                        <SendRewardNotification user={user} />
+                                    )}
                                     <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(user.id_user)}>
                                         <Trash2 className="h-4 w-4 mr-2" />Hapus Pengguna
                                     </Button>

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
+const { notifyAllAdmins } = require('../utils/notificationHelper');
 require('dotenv').config();
 
 const generateToken = (userId) => {
@@ -137,6 +138,15 @@ exports.register = async (req, res) => {
                 status: user.status
             }
         });
+
+        // Notifikasi ke admin: pengguna baru daftar
+        if (role === 'penumpang') {
+            notifyAllAdmins({
+                type: 'info',
+                title: 'Pengguna Baru Mendaftar',
+                message: `${name} baru saja mendaftar sebagai penumpang.`
+            }).catch(() => {});
+        }
     } catch (error) {
         console.error('Register error:', error);
         // Clean up error message for duplicate entry

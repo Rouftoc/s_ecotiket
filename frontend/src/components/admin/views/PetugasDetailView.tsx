@@ -6,6 +6,8 @@ import { ArrowLeft, Edit, Trash2, Mail, Phone, QrCode, BarChart3, Clock } from '
 import QRGenerator from '@/components/common/qr/QRGenerator';
 import ecotiketLogo from '@/assets/logo-eco.png';
 import { UserTransactionHistory } from '../shared/UserTransactionHistory';
+import { PetugasShiftHistory } from '../shared/PetugasShiftHistory';
+import { ResetPasswordForm } from '../shared/ResetPasswordForm';
 import { PetugasDetail, Transaction } from '@/types/dashboard';
 import { transactionsAPI } from '@/lib/api';
 import { toast } from 'sonner';
@@ -150,6 +152,8 @@ export function PetugasDetailView({
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <PetugasShiftHistory petugasId={petugas.id_user} />
                         </div>
 
                         <div className="space-y-6">
@@ -195,6 +199,7 @@ export function PetugasDetailView({
                                     <Button variant="outline" className="w-full hover:bg-blue-50" onClick={() => onEdit(petugas)}>
                                         <Edit className="h-4 w-4 mr-2" />Edit Petugas
                                     </Button>
+                                    <ResetPasswordForm userId={petugas.id_user} userName={petugas.name} />
                                     <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(petugas.id_user)}>
                                         <Trash2 className="h-4 w-4 mr-2" />Hapus Petugas
                                     </Button>

@@ -11,8 +11,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import NewsDetail from './pages/NewsDetail';
 import News from './pages/News';
-import CaraKerja from './pages/information/CaraKerja';
+import NotificationsPage from './pages/NotificationsPage';
 import NilaiTukar from './pages/information/NilaiTukar';
+import CaraKerja from './pages/information/CaraKerja';
 import Keuntungan from './pages/information/Keuntungan';
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/informasi/cara-kerja" element={<CaraKerja />} />
           <Route path="/informasi/nilai-tukar" element={<NilaiTukar />} />
           <Route path="/informasi/keuntungan" element={<Keuntungan />} />
+          <Route path="/notifikasi" element={<NotificationsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

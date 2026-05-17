@@ -9,6 +9,10 @@ router.get('/:id', authenticateToken, requireRole(['admin']), userController.get
 
 router.put('/profile', authenticateToken, userController.updateProfile);
 
+router.put('/change-password', authenticateToken, userController.changePassword);
+
+router.put('/:id/reset-password', authenticateToken, requireRole(['admin']), userController.resetUserPassword);
+
 router.put('/:id', authenticateToken, requireRole(['admin']), userController.updateUser);
 
 router.delete('/:id', authenticateToken, requireRole(['admin']), userController.deleteUser);

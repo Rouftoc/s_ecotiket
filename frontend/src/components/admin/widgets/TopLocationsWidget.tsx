@@ -10,8 +10,8 @@ export default function TopLocationsWidget({ transactions }: TopLocationsWidgetP
     const locationStats: { [key: string]: number } = {};
 
     transactions.forEach(t => {
-        if (t.type === 'bottle_exchange' && t.location) {
-            locationStats[t.location] = (locationStats[t.location] || 0) + (t.bottles_count || 0);
+        if (t.type === 'bottle_exchange' && t.location_name) {
+            locationStats[t.location_name] = (locationStats[t.location_name] || 0) + (t.bottles_count || 0);
         }
     });
 

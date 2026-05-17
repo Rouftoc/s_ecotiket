@@ -72,18 +72,80 @@ exports.updateProfile = async (req, res) => {
             [name, phone || null, address || null, userId]
         );
 
-        // Get updated user
         const [users] = await pool.execute(
             'SELECT id_user, email, nik, name, role, phone, address, qr_code, tickets_balance, points, status FROM users WHERE id_user = ?',
             [userId]
         );
 
-        res.json({
-            message: 'Profile updated successfully',
-            user: users[0]
-        });
+        res.json({ message: 'Profile updated successfully', user: users[0] });
     } catch (error) {
         console.error('Update profile error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id_user;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Password lama dan baru wajib diisi' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password baru minimal 6 karakter' });
+        }
+
+        const [users] = await pool.execute(
+            'SELECT password FROM users WHERE id_user = ?',
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ error: 'User tidak ditemukan' });
+        }
+
+        const isValid = await bcrypt.compare(currentPassword, users[0].password);
+        if (!isValid) {
+            return res.status(400).json({ error: 'Password lama tidak sesuai' });
+        }
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await pool.execute('UPDATE users SET password = ? WHERE id_user = ?', [hashed, userId]);
+
+        res.json({ success: true, message: 'Password berhasil diubah' });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Admin reset password petugas
+exports.resetUserPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password baru minimal 6 karakter' });
+        }
+
+        const [users] = await pool.execute(
+            'SELECT id_user, role FROM users WHERE id_user = ?',
+            [id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ error: 'User tidak ditemukan' });
+        }
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await pool.execute('UPDATE users SET password = ? WHERE id_user = ?', [hashed, id]);
+
+        res.json({ success: true, message: 'Password berhasil direset' });
+    } catch (error) {
+        console.error('Reset password error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

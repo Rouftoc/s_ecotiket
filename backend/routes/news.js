@@ -35,8 +35,8 @@ router.get('/', newsController.getAllNews);
 router.get('/:id', newsController.getNewsById);
 
 // Protected routes (Admin only)
-router.post('/', authenticateToken, requireRole('admin'), upload.single('image'), newsController.createNews);
-router.put('/:id', authenticateToken, requireRole('admin'), upload.single('image'), newsController.updateNews);
-router.delete('/:id', authenticateToken, requireRole('admin'), newsController.deleteNews);
+router.post('/', authenticateToken, requireRole(['admin']), upload.single('image'), newsController.createNews);
+router.put('/:id', authenticateToken, requireRole(['admin']), upload.single('image'), newsController.updateNews);
+router.delete('/:id', authenticateToken, requireRole(['admin']), newsController.deleteNews);
 
 module.exports = router;

@@ -6,7 +6,7 @@ interface Transaction {
     id_transaction: number;
     description: string;
     petugas_name?: string;
-    location?: string;
+    location_name?: string;
     created_at: string;
     type: string;
     status: string;
@@ -85,10 +85,10 @@ export default function PassengerHistory({ transactions, loading }: PassengerHis
                                             </div>
                                             <div className="text-sm text-gray-600 space-y-1">
                                                 <p>Petugas: {transaction.petugas_name}</p>
-                                                {transaction.location && (
+                                                {transaction.location_name && (
                                                     <p className="flex items-center gap-1">
                                                         <MapPin className="h-3 w-3" />
-                                                        {transaction.location}
+                                                        {transaction.location_name}
                                                     </p>
                                                 )}
                                                 <p className="flex items-center gap-1">

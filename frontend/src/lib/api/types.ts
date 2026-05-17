@@ -23,9 +23,6 @@ export interface Location {
     name: string;
     type: 'terminal' | 'koridor' | 'stand';
     address: string;
-    coordinates?: string;
-    description?: string;
-    capacity?: number;
     status: 'active' | 'inactive' | 'maintenance';
     operating_hours?: string;
     created_at: string;
@@ -42,7 +39,8 @@ export interface Transaction {
     bottle_type?: string;
     tickets_change: number;
     points_earned?: number;
-    location?: string;
+    id_location?: number;
+    location_name?: string;
     status: string;
     created_at: string;
     user_name?: string;

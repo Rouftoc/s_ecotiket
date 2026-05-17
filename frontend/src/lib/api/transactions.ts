@@ -18,7 +18,7 @@ export const transactionsAPI = {
         userQrCode: string;
         bottleType: string;
         bottleCount: number;
-        location?: string;
+        locationId?: number;
     }): Promise<ApiResponse> {
         try {
             console.log('Processing bottle exchange:', data);
@@ -30,7 +30,7 @@ export const transactionsAPI = {
                     userQrCode: data.userQrCode,
                     bottleType: data.bottleType,
                     bottleCount: data.bottleCount,
-                    location: data.location
+                    locationId: data.locationId
                 })
             });
 
@@ -50,7 +50,7 @@ export const transactionsAPI = {
             type: string;
             count: number;
         }>;
-        location?: string;
+        locationId?: number;
     }): Promise<ApiResponse> {
         try {
             console.log('Processing bulk bottle exchange:', data);
@@ -61,7 +61,7 @@ export const transactionsAPI = {
                 body: JSON.stringify({
                     userQrCode: data.userQrCode,
                     bottles: data.bottles,
-                    location: data.location
+                    locationId: data.locationId
                 })
             });
 
@@ -84,7 +84,7 @@ export const transactionsAPI = {
                             userQrCode: data.userQrCode,
                             bottleType: bottle.type,
                             bottleCount: bottle.count,
-                            location: data.location
+                            locationId: data.locationId
                         });
 
                         if (result.tickets_earned) totalTickets += result.tickets_earned;
@@ -107,7 +107,7 @@ export const transactionsAPI = {
     async processTicketUsage(data: {
         userQrCode: string;
         ticketCount: number;
-        location?: string;
+        locationId?: number;
     }): Promise<ApiResponse> {
         try {
             console.log('Processing ticket usage:', data);
@@ -118,7 +118,7 @@ export const transactionsAPI = {
                 body: JSON.stringify({
                     userQrCode: data.userQrCode,
                     ticketCount: data.ticketCount,
-                    location: data.location
+                    locationId: data.locationId
                 })
             });
 

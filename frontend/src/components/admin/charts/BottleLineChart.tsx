@@ -77,6 +77,7 @@ export default function BottleStatisticsChart({ statsFilter, bottleStats, transa
           dataTemplate[i] = { time: `${i}`, kecil: 0, sedang: 0, jumbo: 0, besar: 0, cup: 0, total: 0 };
         }
       } else {
+        // 'all' or 'year' — group by month
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         timeKeyFormatter = (date) => date.getMonth();
         months.forEach((month, index) => {

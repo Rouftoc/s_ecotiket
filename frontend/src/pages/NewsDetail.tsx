@@ -6,7 +6,7 @@ import { NewsItem } from '@/types/dashboard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, User, Clock, Newspaper } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import logoEcoTiket from '@/assets/logo_ecotiket.png';
+import PublicNavbar from '@/components/common/PublicNavbar';
 
 export default function NewsDetail() {
     const { id } = useParams<{ id: string }>();
@@ -36,7 +36,7 @@ export default function NewsDetail() {
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 font-sans">
-                <Navbar navigate={navigate} />
+                <PublicNavbar />
                 <div className="container mx-auto px-4 py-12 max-w-4xl">
                     <Skeleton className="w-full h-[400px] rounded-xl mb-8" />
                     <Skeleton className="h-10 w-3/4 mb-4" />
@@ -52,14 +52,14 @@ export default function NewsDetail() {
     if (error || !news) {
         return (
             <div className="min-h-screen bg-gray-50 font-sans">
-                <Navbar navigate={navigate} />
+                <PublicNavbar />
                 <div className="container mx-auto px-4 py-20 text-center">
                     <div className="max-w-md mx-auto">
                         <Newspaper className="h-20 w-20 mx-auto text-gray-300 mb-6" />
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Berita Tidak Ditemukan</h2>
                         <p className="text-gray-600 mb-6">{error || "Berita yang Anda cari mungkin telah dihapus atau URL salah."}</p>
-                        <Button onClick={() => navigate('/')} variant="outline">
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Beranda
+                        <Button onClick={() => navigate('/berita')} variant="outline">
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Berita
                         </Button>
                     </div>
                 </div>
@@ -69,15 +69,15 @@ export default function NewsDetail() {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
-            <Navbar navigate={navigate} />
+            <PublicNavbar />
 
             <main className="container mx-auto px-4 py-8 max-w-4xl">
                 <Button
                     variant="ghost"
                     className="mb-6 pl-0 hover:bg-transparent hover:text-green-600"
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/berita')}
                 >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Berita
                 </Button>
 
                 <article className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
@@ -126,28 +126,11 @@ export default function NewsDetail() {
                 </article>
             </main>
 
-            <footer className="bg-white text-gray-900 py-12 border-t mt-12">
-                <div className="container mx-auto px-4 text-center text-gray-500">
-                    <p>© 2025 Dishub Kota Banjarmasin. All Rights Reserved.</p>
+            <footer className="bg-white border-t mt-12 py-8">
+                <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
+                    <p>© 2026 Dishub Kota Banjarmasin. All Rights Reserved.</p>
                 </div>
             </footer>
         </div>
     );
-}
-function Navbar({ navigate }: { navigate: (path: string) => void }) {
-    return (
-        <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
-            <div className="container mx-auto px-4 py-3">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-                        <img src={logoEcoTiket} alt="Logo" className="h-10 md:h-12 w-auto" />
-                    </div>
-                    <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="ghost" onClick={() => navigate('/')}>Beranda</Button>
-                        <Button variant="ghost" onClick={() => navigate('/#berita')}>Berita Lainnya</Button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    )
 }

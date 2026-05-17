@@ -95,7 +95,6 @@ export function LocationsTab({
                                     <TableHead>Nama Lokasi</TableHead>
                                     <TableHead>Tipe</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Kapasitas</TableHead>
                                     <TableHead>Jam Operasional</TableHead>
                                     <TableHead>Aksi</TableHead>
                                 </TableRow>
@@ -103,7 +102,7 @@ export function LocationsTab({
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={5} className="text-center py-8">
                                             <div className="flex items-center justify-center gap-2">
                                                 <RefreshCw className="h-4 w-4 animate-spin" />
                                                 Memuat data lokasi...
@@ -134,11 +133,6 @@ export function LocationsTab({
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="text-sm whitespace-nowrap">
-                                                    {location.capacity ? `${location.capacity} orang` : '-'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
                                                 <span className="text-sm whitespace-nowrap">{location.operating_hours || '-'}</span>
                                             </TableCell>
                                             <TableCell>
@@ -154,6 +148,7 @@ export function LocationsTab({
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                                         onClick={() => onDeleteLocation(location.id_location)}
                                                         title="Hapus lokasi"
                                                     >
@@ -165,7 +160,7 @@ export function LocationsTab({
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                                             Belum ada lokasi terdaftar
                                         </TableCell>
                                     </TableRow>

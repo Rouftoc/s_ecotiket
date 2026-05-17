@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { transactionsAPI, usersAPI, locationsAPI } from '@/lib/api';
+import { transactionsAPI, usersAPI, locationsAPI, shiftsAPI } from '@/lib/api';
 import QRScanner from '@/components/common/qr/QRScanner';
 import { UserRecord, PetugasTransaction } from '@/types/dashboard';
-import { BOTTLE_RATES } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QrCode, History, UserPlus, LogOut, Menu, X, User as UserIcon } from 'lucide-react';
@@ -38,13 +37,7 @@ export default function PetugasDashboard() {
   const [currentUserData, setCurrentUserData] = useState<UserRecord | null>(null);
   const [activeTab, setActiveTab] = useState('transaction');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bottleCount, setBottleCount] = useState({
-    jumbo: 0,
-    besar: 0,
-    sedang: 0,
-    kecil: 0,
-    cup: 0
-  });
+  const [bottleCount, setBottleCount] = useState<Record<string, number>>({});
   const [todayTransactions, setTodayTransactions] = useState<PetugasTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -74,6 +67,9 @@ export default function PetugasDashboard() {
       loadTodayTransactions();
     }
     localStorage.setItem('transactionDate', today);
+
+    // Restore active shift from DB on page load
+    restoreActiveShift();
   }, [navigate]);
 
   const loadTodayTransactions = async () => {
@@ -90,15 +86,11 @@ export default function PetugasDashboard() {
           qrCode: '',
           type: t.type === 'bottle_exchange' ? 'stand' : 'karnet',
           bottles: t.type === 'bottle_exchange' ? {
-            jumbo: t.bottle_type === 'jumbo' ? t.bottles_count : 0,
-            besar: t.bottle_type === 'besar' ? t.bottles_count : 0,
-            sedang: t.bottle_type === 'sedang' ? t.bottles_count : 0,
-            kecil: t.bottle_type === 'kecil' ? t.bottles_count : 0,
-            cup: t.bottle_type === 'cup' ? t.bottles_count : 0
+            [t.bottle_type]: t.bottles_count
           } : undefined,
           tickets: t.tickets_change,
           timestamp: new Date(t.created_at).toLocaleString('id-ID'),
-          location: t.location || ''
+          location: t.location_name || ''
         }));
 
         setTodayTransactions(localTransactions);
@@ -142,19 +134,9 @@ export default function PetugasDashboard() {
   }, []);
 
   const calculateTickets = () => {
-    let total = 0;
-    (Object.keys(BOTTLE_RATES) as Array<keyof typeof BOTTLE_RATES>).forEach(key => {
-      const rate = BOTTLE_RATES[key];
-      // Type safe access to bottleCount using the key
-      const count = bottleCount[key] || 0;
-
-      if (rate.bottles === 1) {
-        total += count * rate.tickets;
-      } else {
-        total += Math.floor(count / rate.bottles) * rate.tickets;
-      }
-    });
-    return total;
+    // Kalkulasi aktual dilakukan di backend
+    // Di frontend hanya cek apakah ada botol yang diinput
+    return Object.values(bottleCount).some(v => v > 0) ? 1 : 0;
   };
 
   const handleQRScan = async (qrCode: string) => {
@@ -231,13 +213,9 @@ export default function PetugasDashboard() {
     setLoading(true);
     try {
 
-      const bottleTypes = [
-        { type: 'jumbo', count: bottleCount.jumbo },
-        { type: 'besar', count: bottleCount.besar },
-        { type: 'sedang', count: bottleCount.sedang },
-        { type: 'kecil', count: bottleCount.kecil },
-        { type: 'cup', count: bottleCount.cup }
-      ];
+      const bottleTypes = Object.entries(bottleCount)
+        .filter(([, count]) => count > 0)
+        .map(([type, count]) => ({ type, count }));
 
       for (const bottle of bottleTypes) {
         if (bottle.count > 0) {
@@ -245,7 +223,7 @@ export default function PetugasDashboard() {
             userQrCode: currentQR,
             bottleType: bottle.type,
             bottleCount: bottle.count,
-            location: locations.find(l => l.id === selectedLocation)?.name || selectedLocation
+            locationId: selectedLocation ? Number(selectedLocation) : undefined
           });
         }
       }
@@ -269,7 +247,7 @@ export default function PetugasDashboard() {
         ...prev,
         ticketsBalance: prev.ticketsBalance + totalTickets
       } : null);
-      setBottleCount({ jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0 });
+      setBottleCount(prev => Object.fromEntries(Object.keys(prev).map(k => [k, 0])));
     } catch (error: any) {
       toast.error(`Gagal memproses transaksi: ${error.message}`);
     } finally {
@@ -292,7 +270,7 @@ export default function PetugasDashboard() {
       await transactionsAPI.processTicketUsage({
         userQrCode: currentQR,
         ticketCount: 1,
-        location: locations.find(l => l.id === selectedLocation)?.name
+        locationId: selectedLocation ? Number(selectedLocation) : undefined
       });
 
       const transaction: PetugasTransaction = {
@@ -320,23 +298,47 @@ export default function PetugasDashboard() {
     }
   };
 
-  const startShift = (mode: 'stand' | 'karnet') => {
+  const startShift = async (mode: 'stand' | 'karnet') => {
     if (!selectedLocation) {
       toast.error('Pilih lokasi tugas terlebih dahulu');
       return;
     }
-    setActiveMode(mode);
-    setMobileMenuOpen(false);
-    toast.success(`Shift ${mode} dimulai`);
+    try {
+      await shiftsAPI.startShift({ locationId: Number(selectedLocation), mode });
+      setActiveMode(mode);
+      setMobileMenuOpen(false);
+      toast.success(`Shift ${mode} dimulai`);
+    } catch (error: any) {
+      toast.error(`Gagal memulai shift: ${error.message}`);
+    }
   };
 
-  const endShift = () => {
+  const endShift = async () => {
+    try {
+      await shiftsAPI.endShift();
+    } catch (error) {
+      // Tetap lanjut reset state meski API gagal
+      console.error('End shift API error:', error);
+    }
     setActiveMode(null);
     setCurrentQR('');
     setCurrentUserData(null);
-    setBottleCount({ jumbo: 0, besar: 0, sedang: 0, kecil: 0, cup: 0 });
+    setBottleCount({});
     setMobileMenuOpen(false);
     toast.success('Shift berakhir');
+  };
+
+  const restoreActiveShift = async () => {
+    try {
+      const response = await shiftsAPI.getActiveShift();
+      if (response.success && response.shift) {
+        const shift = response.shift;
+        setSelectedLocation(String(shift.id_location));
+        setActiveMode(shift.mode);
+      }
+    } catch (error) {
+      // Tidak ada shift aktif, biarkan state default
+    }
   };
 
   if (!user) return <div>Loading...</div>;
@@ -355,7 +357,7 @@ export default function PetugasDashboard() {
 
           <nav className="mt-6 px-3 space-y-1">
             {[
-              { id: 'transaction', label: 'Transaksi', icon: QrCode },
+              { id: 'transaction', label: 'Mode Kerja', icon: QrCode },
               { id: 'history', label: 'Riwayat Hari Ini', icon: History },
               { id: 'register', label: 'Daftar Penumpang', icon: UserPlus },
               { id: 'profile', label: 'Profil Saya', icon: UserIcon }
@@ -400,17 +402,20 @@ export default function PetugasDashboard() {
                 <Menu className="h-5 w-5" />
               </Button>
             )}
-            {!activeMode && <img src={logoEcoTiket} alt="Logo" className="h-8 w-auto" />}
+            {!activeMode && <img src={logoEcoTiket} alt="Logo" className="h-10 md:h-12 w-auto" />}
             <h1 className="text-lg font-semibold text-gray-900 hidden sm:block">
               {activeMode ? (
-                activeTab === 'transaction' ? 'Transaksi' :
+                activeTab === 'transaction' ? 'Mode Kerja' :
                   activeTab === 'history' ? 'Riwayat Transaksi' :
                     activeTab === 'register' ? 'Daftar Penumpang' : 'Profil Petugas'
-              ) : ''}
+              ) : 'Dashboard Petugas'}
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600 hidden sm:inline">{user.email}</span>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-medium text-gray-800">{user.name}</span>
+              <span className="text-xs text-gray-400">{user.email}</span>
+            </div>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
@@ -420,9 +425,6 @@ export default function PetugasDashboard() {
 
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           <div className="max-w-6xl mx-auto space-y-6">
-            {/* ShiftStatus Card - Always Visible when needed, EXCEPT for Profile? No, keep it. */}
-            {/* User might be editing profile while on shift? Maybe hide if activeTab is profile? */}
-            {/* Usually profiles are separate. I will hide ShiftStatus if Tab is Profile. */}
             {activeTab !== 'profile' && (
               <ShiftStatus
                 locations={locations}

@@ -1,6 +1,7 @@
 const { pool } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
+const { sendNotification } = require('../utils/notificationHelper');
 
 // Get all news (optional: filter by featured, limit)
 exports.getAllNews = async (req, res) => {
@@ -64,7 +65,7 @@ exports.createNews = async (req, res) => {
     try {
         const { title, content, is_featured } = req.body;
         const image = req.file ? req.file.filename : null;
-        const created_by = req.user.userId; // From auth middleware
+        const created_by = req.user.id_user; // From auth middleware
 
         // Generate basic slug from title
         const slug = title.toLowerCase()
@@ -81,6 +82,19 @@ exports.createNews = async (req, res) => {
             id_news: result.insertId,
             image
         });
+
+        // Broadcast notifikasi ke semua penumpang aktif
+        const [penumpang] = await pool.execute(
+            'SELECT id_user FROM users WHERE role = "penumpang" AND status = "active"'
+        );
+        for (const p of penumpang) {
+            sendNotification(null, {
+                id_user: p.id_user,
+                type: 'info',
+                title: 'Berita Baru',
+                message: `Ada berita terbaru: "${title}". Cek sekarang di menu Berita!`
+            }).catch(() => {});
+        }
     } catch (error) {
         console.error('Error creating news:', error);
         res.status(500).json({ message: 'Internal server error' });

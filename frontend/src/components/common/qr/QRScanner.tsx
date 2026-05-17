@@ -13,6 +13,7 @@ interface QRScannerProps {
   placeholder?: string;
   autoStart?: boolean;
   autoStartCamera?: boolean;
+  cameraOnly?: boolean;
 }
 
 export default function QRScanner({
@@ -20,9 +21,10 @@ export default function QRScanner({
   onClose,
   placeholder = "Scan atau input QR Code",
   autoStart = false,
-  autoStartCamera = false
+  autoStartCamera = false,
+  cameraOnly = false
 }: QRScannerProps) {
-  const [scanMode, setScanMode] = useState<'camera' | 'manual' | 'gallery'>(autoStartCamera ? 'camera' : 'manual');
+  const [scanMode, setScanMode] = useState<'camera' | 'manual' | 'gallery'>(autoStartCamera || cameraOnly ? 'camera' : 'manual');
   const [manualInput, setManualInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
@@ -347,32 +349,34 @@ export default function QRScanner({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant={scanMode === 'camera' ? 'default' : 'outline'}
-            onClick={() => switchMode('camera')}
-            disabled={isScanning && scanMode !== 'camera'}
-          >
-            <Camera className="h-4 w-4 mr-2" />
-            Kamera
-          </Button>
-          <Button
-            variant={scanMode === 'gallery' ? 'default' : 'outline'}
-            onClick={() => switchMode('gallery')}
-            disabled={isScanning}
-          >
-            <ImageIcon className="h-4 w-4 mr-2" />
-            Galeri
-          </Button>
-          <Button
-            variant={scanMode === 'manual' ? 'default' : 'outline'}
-            onClick={() => switchMode('manual')}
-            disabled={isScanning}
-          >
-            <Type className="h-4 w-4 mr-2" />
-            Manual
-          </Button>
-        </div>
+        {!cameraOnly && (
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant={scanMode === 'camera' ? 'default' : 'outline'}
+              onClick={() => switchMode('camera')}
+              disabled={isScanning && scanMode !== 'camera'}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Kamera
+            </Button>
+            <Button
+              variant={scanMode === 'gallery' ? 'default' : 'outline'}
+              onClick={() => switchMode('gallery')}
+              disabled={isScanning}
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Galeri
+            </Button>
+            <Button
+              variant={scanMode === 'manual' ? 'default' : 'outline'}
+              onClick={() => switchMode('manual')}
+              disabled={isScanning}
+            >
+              <Type className="h-4 w-4 mr-2" />
+              Manual
+            </Button>
+          </div>
+        )}
 
         {scanMode === 'camera' && (
           <div className="space-y-4">

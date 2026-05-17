@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { User, Edit, Save, X, Phone, MapPin, Mail, Shield } from 'lucide-react';
 import { usersAPI } from '@/lib/api';
 import { toast } from 'sonner';
+import ChangePasswordForm from '@/components/common/ChangePasswordForm';
 
 interface PetugasData {
     id_user: number;
@@ -50,7 +51,8 @@ export default function PetugasProfile({ user, setUser, updateLocalStorage }: Pe
     };
 
     return (
-        <Card>
+        <div className="space-y-6">
+            <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -156,5 +158,7 @@ export default function PetugasProfile({ user, setUser, updateLocalStorage }: Pe
                 )}
             </CardContent>
         </Card>
+            <ChangePasswordForm />
+        </div>
     );
 }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, Menu, X, QrCode, History, User } from 'lucide-react';
+import { LogOut, Menu, X, QrCode, History, User, Bell } from 'lucide-react';
 import { toast } from 'sonner';
-import { transactionsAPI } from '@/lib/api';
+import { transactionsAPI, notificationsAPI } from '@/lib/api';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
 import { Badge } from '@/components/ui/badge';
+import NotificationBell from '@/components/common/NotificationBell';
 
 // New Components
 import PassengerStats from '@/components/penumpang/PassengerStats';
@@ -67,6 +68,15 @@ export default function PenumpangDashboard() {
 
     setUser(parsedUser);
     loadTransactions(parsedUser.id_user);
+
+    // Cek tiket kadaluarsa saat login
+    fetch(`http://localhost:5000/api/notifications/check-expiring`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${parsedUser.token}`
+      }
+    }).catch(() => {});
   }, [navigate]);
 
   const loadTransactions = async (userId: number) => {
@@ -114,7 +124,7 @@ export default function PenumpangDashboard() {
 
         <nav className="mt-6 px-3 space-y-1">
           {[
-            { id: 'qr', label: 'QR Code', icon: QrCode },
+            { id: 'qr', label: 'Dashboard', icon: QrCode },
             { id: 'history', label: 'Riwayat Transaksi', icon: History },
             { id: 'profile', label: 'Profil Saya', icon: User }
           ].map(tab => {
@@ -156,10 +166,11 @@ export default function PenumpangDashboard() {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold text-gray-900">
-              {activeTab === 'qr' ? 'QR Code Saya' : activeTab === 'history' ? 'Riwayat Transaksi' : 'Profil Pengguna'}
+              {activeTab === 'qr' ? 'Dashboard' : activeTab === 'history' ? 'Riwayat Transaksi' : 'Profil Pengguna'}
             </h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <NotificationBell />
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Logout</span>

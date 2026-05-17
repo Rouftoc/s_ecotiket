@@ -114,21 +114,33 @@ export const usersAPI = {
 
     async deleteUser(id: number): Promise<ApiResponse> {
         try {
-            console.log('Deleting user:', id);
-
             const response = await fetch(`${API_BASE_URL}/users/${id}`, {
                 method: 'DELETE',
                 headers: createHeaders()
             });
-
-            const result = await handleResponse(response);
-            console.log('User deleted:', result);
-
-            return result;
+            return handleResponse(response);
         } catch (error) {
             console.error('Error deleting user:', error);
             throw error;
         }
+    },
+
+    async changePassword(data: { currentPassword: string; newPassword: string }): Promise<ApiResponse> {
+        const response = await fetch(`${API_BASE_URL}/users/change-password`, {
+            method: 'PUT',
+            headers: createHeaders(),
+            body: JSON.stringify(data)
+        });
+        return handleResponse(response);
+    },
+
+    async resetUserPassword(id: number, newPassword: string): Promise<ApiResponse> {
+        const response = await fetch(`${API_BASE_URL}/users/${id}/reset-password`, {
+            method: 'PUT',
+            headers: createHeaders(),
+            body: JSON.stringify({ newPassword })
+        });
+        return handleResponse(response);
     }
 };
 

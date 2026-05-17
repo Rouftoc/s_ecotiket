@@ -49,10 +49,8 @@ export const locationsAPI = {
         name: string;
         type: 'terminal' | 'koridor' | 'stand';
         address: string;
-        coordinates?: string;
-        description?: string;
-        capacity?: number;
         operating_hours?: string;
+        status?: 'active' | 'inactive' | 'maintenance';
     }): Promise<ApiResponse> {
         try {
             const response = await fetch(`${API_BASE_URL}/locations`, {
@@ -71,9 +69,6 @@ export const locationsAPI = {
         name?: string;
         type?: 'terminal' | 'koridor' | 'stand';
         address?: string;
-        coordinates?: string;
-        description?: string;
-        capacity?: number;
         status?: 'active' | 'inactive' | 'maintenance';
         operating_hours?: string;
     }): Promise<ApiResponse> {

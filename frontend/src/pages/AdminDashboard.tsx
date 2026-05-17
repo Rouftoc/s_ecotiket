@@ -15,7 +15,7 @@ import { OverviewTab } from '@/components/admin/tabs/OverviewTab';
 import UserManager from '@/components/admin/managers/UserManager';
 import LocationManager from '@/components/admin/managers/LocationManager';
 
-import { EditProfileDialog } from '@/components/admin/forms/EditProfileDialog';
+import { EditProfile } from '@/components/admin/forms/profile/EditProfile';
 import MasterDataView from '@/components/admin/views/MasterDataView';
 import NewsManager from '@/components/admin/managers/NewsManager';
 import AdminProfile from '@/components/admin/views/AdminProfile';
@@ -23,6 +23,7 @@ import AdminChatManager from '@/components/admin/managers/AdminChatManager';
 
 import ReportGenerator from '@/components/admin/managers/ReportGenerator';
 import logoEcoTiket from '@/assets/logo_ecotiket.png';
+import NotificationBell from '@/components/common/NotificationBell';
 
 import { usersAPI, transactionsAPI, authAPI, locationsAPI } from '@/lib/api';
 import {
@@ -224,12 +225,12 @@ export default function AdminDashboard() {
   if (!currentUser) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
   const navigationItems = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'users', label: 'Pengguna', icon: Users },
-    { id: 'locations', label: 'Lokasi', icon: MapPin },
-    { id: 'news', label: 'Berita', icon: FileText },
-    { id: 'messages', label: 'Live Chat', icon: MessageCircle },
-    { id: 'master', label: 'Data Master', icon: Database },
+    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
+    { id: 'users', label: 'Manajemen Pengguna', icon: Users },
+    { id: 'locations', label: 'Manajemen Lokasi', icon: MapPin },
+    { id: 'news', label: 'Manajemen Berita', icon: FileText },
+    { id: 'messages', label: 'Live Chat & Support', icon: MessageCircle },
+    { id: 'master', label: 'Jenis Botol', icon: Database },
     { id: 'reports', label: 'Laporan', icon: FileText },
     { id: 'profile', label: 'Profil Saya', icon: User },
   ];
@@ -291,16 +292,19 @@ export default function AdminDashboard() {
 
         <header className="hidden lg:flex bg-white shadow-sm border-b px-6 py-4 justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-900 capitalize">
-            {activeTab === 'overview' ? 'Overview' :
+            {activeTab === 'overview' ? 'Dashboard' :
               activeTab === 'users' ? 'Manajemen Pengguna' :
                 activeTab === 'locations' ? 'Manajemen Lokasi' :
                   activeTab === 'news' ? 'Manajemen Berita' :
                     activeTab === 'messages' ? 'Live Chat & Support' :
-                      activeTab === 'master' ? 'Data Master' :
+                      activeTab === 'master' ? 'Jenis Botol' :
                         activeTab === 'reports' ? 'Laporan' :
                           activeTab === 'profile' ? 'Profil Saya' : activeTab}
           </h1>
-          <Badge>Administrator</Badge>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Badge>Administrator</Badge>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
@@ -308,8 +312,6 @@ export default function AdminDashboard() {
             {activeTab === 'overview' && (
               <OverviewTab
                 stats={dashboardStats}
-                growthRate={growthRate}
-                growthLoading={growthLoading}
                 bottleStats={bottleStats}
                 transactions={transactions}
                 users={users}
@@ -352,7 +354,7 @@ export default function AdminDashboard() {
 
 
 
-      <EditProfileDialog
+      <EditProfile
         open={isProfileOpen}
         initialData={{
           name: currentUser.name,

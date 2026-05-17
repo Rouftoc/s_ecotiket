@@ -1,4 +1,5 @@
-import { MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,21 +27,48 @@ export default function ShiftStatus({
     activeMode,
     endShift
 }: ShiftStatusProps) {
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const formatDate = (d: Date) => d.toLocaleDateString('id-ID', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const formatTime = (d: Date) => d.toLocaleTimeString('id-ID', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
     return (
         <Card className="mb-4 sm:mb-8">
-            <CardHeader className="pb-3 sm:pb-6">
-                <CardTitle className="text-lg sm:text-xl flex items-center">
-                    <MapPin className="h-5 w-5 mr-2" />
-                    Status Shift
-                </CardTitle>
+            <CardHeader className="pb-3 sm:pb-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-lg sm:text-xl flex items-center">
+                        <MapPin className="h-5 w-5 mr-2" />
+                        Status Shift
+                    </CardTitle>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(now)}
+                        </span>
+                        <span className="flex items-center gap-1 font-mono font-semibold text-gray-700">
+                            <Clock className="h-4 w-4" />
+                            {formatTime(now)}
+                        </span>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-0">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="space-y-2 flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <Label className="text-sm">Lokasi Tugas:</Label>
-                            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                                <SelectTrigger className="w-full sm:w-64 text-sm">
+                            <Label className="text-sm shrink-0">Lokasi Tugas:</Label>
+                            <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={!!activeMode}>
+                                <SelectTrigger className="w-full sm:w-72 text-sm">
                                     <SelectValue placeholder="Pilih lokasi" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -53,9 +81,9 @@ export default function ShiftStatus({
                             </Select>
                         </div>
                         {activeMode && (
-                            <div className="flex items-center space-x-2">
-                                <Badge variant="default" className="bg-green-600 text-xs sm:text-sm">
-                                    {activeMode === 'stand' ? 'Stand Aktif' : 'Karnet Aktif'}
+                            <div className="flex items-center gap-2">
+                                <Badge className={`text-xs sm:text-sm ${activeMode === 'stand' ? 'bg-green-600' : 'bg-blue-600'}`}>
+                                    {activeMode === 'stand' ? 'Stand Aktif' : 'Kernet Aktif'}
                                 </Badge>
                                 <span className="text-xs sm:text-sm text-gray-600">
                                     di {locations.find(l => l.id === selectedLocation)?.name}

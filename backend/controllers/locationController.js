@@ -79,17 +79,8 @@ exports.getLocationById = async (req, res) => {
 
 exports.createLocation = async (req, res) => {
     try {
-        const {
-            name,
-            type,
-            address,
-            coordinates,
-            description,
-            capacity,
-            operating_hours
-        } = req.body;
+        const { name, type, address, operating_hours, status } = req.body;
 
-        // Basic validation
         if (!name || !type || !address) {
             return res.status(400).json({
                 success: false,
@@ -105,9 +96,8 @@ exports.createLocation = async (req, res) => {
         }
 
         const [result] = await pool.execute(
-            `INSERT INTO locations (name, type, address, coordinates, description, capacity, status, operating_hours) 
-       VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
-            [name, type, address, coordinates, description, capacity, operating_hours]
+            `INSERT INTO locations (name, type, address, status, operating_hours) VALUES (?, ?, ?, ?, ?)`,
+            [name, type, address, status || 'active', operating_hours || null]
         );
 
         const [newLocation] = await pool.execute(
@@ -133,16 +123,7 @@ exports.createLocation = async (req, res) => {
 exports.updateLocation = async (req, res) => {
     try {
         const { id } = req.params;
-        const {
-            name,
-            type,
-            address,
-            coordinates,
-            description,
-            capacity,
-            status,
-            operating_hours
-        } = req.body;
+        const { name, type, address, status, operating_hours } = req.body;
 
         const [existing] = await pool.execute(
             'SELECT * FROM locations WHERE id_location = ?',
@@ -165,43 +146,28 @@ exports.updateLocation = async (req, res) => {
         }
         if (type !== undefined) {
             const normalizedType = String(type).toLowerCase().trim();
-            console.log(`[UpdateLocation] Received type: '${type}', normalized: '${normalizedType}'`);
-
-            if (!['terminal', 'koridor', 'stand'].includes(normalizedType)) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Invalid location type. Received: '${type}'`,
-                    validTypes: ['terminal', 'koridor', 'stand']
-                });
+            if (['terminal', 'koridor', 'stand'].includes(normalizedType)) {
+                updates.push('type = ?');
+                params.push(normalizedType);
             }
-            updates.push('type = ?');
-            params.push(normalizedType);
+            // Kalau type tidak valid, skip saja (jangan error)
         }
         if (address !== undefined) {
             updates.push('address = ?');
             params.push(address);
         }
-        if (coordinates !== undefined) {
-            updates.push('coordinates = ?');
-            params.push(coordinates);
-        }
-        if (description !== undefined) {
-            updates.push('description = ?');
-            params.push(description);
-        }
-        if (capacity !== undefined) {
-            updates.push('capacity = ?');
-            params.push(capacity);
-        }
         if (status !== undefined) {
-            if (!['active', 'inactive', 'maintenance'].includes(status)) {
+            const normalizedStatus = String(status).toLowerCase().trim();
+
+            if (!['active', 'inactive', 'maintenance'].includes(normalizedStatus)) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Invalid status'
+                    error: `Invalid status. Received: '${status}'`,
+                    validStatuses: ['active', 'inactive', 'maintenance']
                 });
             }
             updates.push('status = ?');
-            params.push(status);
+            params.push(normalizedStatus);
         }
         if (operating_hours !== undefined) {
             updates.push('operating_hours = ?');
@@ -215,7 +181,6 @@ exports.updateLocation = async (req, res) => {
             });
         }
 
-        updates.push('updated_at = CURRENT_TIMESTAMP');
         params.push(id);
 
         await pool.execute(

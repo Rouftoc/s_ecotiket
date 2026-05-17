@@ -7,8 +7,8 @@ import { UserRecord, PetugasDetail, Transaction } from '@/types/dashboard';
 import { UsersTab } from '@/components/admin/tabs/UsersTab';
 import { UserDetailView } from '@/components/admin/views/UserDetailView';
 import { PetugasDetailView } from '@/components/admin/views/PetugasDetailView';
-import { AddUserForm, CreateUserFormData } from '@/components/admin/forms/AddUserForm';
-import { EditUserForm, EditUserFormData } from '@/components/admin/forms/EditUserForm';
+import { CreateUser, CreateUserData } from '@/components/admin/forms/users/CreateUser';
+import { EditUser, EditUserData } from '@/components/admin/forms/users/EditUser';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function UserManager() {
@@ -59,7 +59,7 @@ export default function UserManager() {
         }
     };
 
-    const handleAddUser = async (data: CreateUserFormData) => {
+    const handleAddUser = async (data: CreateUserData) => {
         setSaving(true);
         try {
             const registerData = {
@@ -83,7 +83,7 @@ export default function UserManager() {
         }
     };
 
-    const handleUpdateUser = async (data: EditUserFormData) => {
+    const handleUpdateUser = async (data: EditUserData) => {
         if (!editingUser) return;
         setSaving(true);
         try {
@@ -114,6 +114,7 @@ export default function UserManager() {
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
+            cancelButtonColor: "#1f2937",
             confirmButtonText: "Ya, hapus!",
             cancelButtonText: "Batal"
         }).then(async (result) => {
@@ -212,7 +213,7 @@ export default function UserManager() {
                         <DialogTitle>Tambah Pengguna</DialogTitle>
                         <DialogDescription>Isi form berikut.</DialogDescription>
                     </DialogHeader>
-                    <AddUserForm
+                    <CreateUser
                         isSaving={saving}
                         onSubmit={handleAddUser}
                         onCancel={() => setIsAddingUser(false)}
@@ -228,7 +229,7 @@ export default function UserManager() {
                         <DialogDescription>Update data pengguna</DialogDescription>
                     </DialogHeader>
                     {editingUser && (
-                        <EditUserForm
+                        <EditUser
                             userData={editingUser}
                             isSaving={saving}
                             onSave={handleUpdateUser}

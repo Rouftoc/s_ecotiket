@@ -10,7 +10,8 @@ import { Newspaper, Loader2, Plus, Edit, Trash2, Search, Image as ImageIcon } fr
 import { toast } from 'sonner';
 import { newsAPI } from '@/lib/api/news';
 import { NewsItem } from '@/types/dashboard';
-import { NewsForm, NewsFormData } from '@/components/admin/forms/NewsForm';
+import { CreateNews, CreateNewsData } from '@/components/admin/forms/news/CreateNews';
+import { EditNews, EditNewsData } from '@/components/admin/forms/news/EditNews';
 
 export default function NewsManager() {
     const [news, setNews] = useState<NewsItem[]>([]);
@@ -52,7 +53,7 @@ export default function NewsManager() {
         setIsDialogOpen(true);
     };
 
-    const handleSave = async (formData: NewsFormData) => {
+    const handleSave = async (formData: CreateNewsData | EditNewsData) => {
         if (!formData.title || !formData.content) {
             toast.error('Judul dan konten wajib diisi');
             return;
@@ -231,13 +232,20 @@ export default function NewsManager() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <NewsForm
-                        initialData={selectedNews}
-                        isCreating={!selectedNews}
-                        isSaving={saving}
-                        onSave={handleSave}
-                        onCancel={() => setIsDialogOpen(false)}
-                    />
+                    {selectedNews ? (
+                        <EditNews
+                            initialData={selectedNews}
+                            isSaving={saving}
+                            onSave={handleSave}
+                            onCancel={() => setIsDialogOpen(false)}
+                        />
+                    ) : (
+                        <CreateNews
+                            isSaving={saving}
+                            onSave={handleSave}
+                            onCancel={() => setIsDialogOpen(false)}
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

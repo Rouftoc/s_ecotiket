@@ -39,7 +39,7 @@ export default function KarnetTransaction({
                         <div className="text-xs sm:text-sm text-blue-700 mt-1">
                             <p>Saldo: <span className="font-bold text-base">{currentUserData.ticketsBalance}</span></p>
                             {currentUserData.ticketsBalance < 1 && (
-                                <p className="text-red-600 font-medium mt-1 text-xs">⚠️ Saldo tidak cukup!</p>
+                                <p className="text-red-600 font-medium mt-1 text-xs"> Saldo tidak cukup!</p>
                             )}
                         </div>
                     </div>

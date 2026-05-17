@@ -6,27 +6,30 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
 
-interface ProfileData {
+export interface EditProfileData {
     name: string;
     email: string;
     phone: string;
     address: string;
 }
 
-interface EditProfileDialogProps {
-    initialData: ProfileData;
+interface EditProfileProps {
+    initialData: EditProfileData;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSave: (data: ProfileData) => Promise<void>;
+    onSave: (data: EditProfileData) => Promise<void>;
     isUpdating: boolean;
 }
 
-export function EditProfileDialog({ initialData, open, onOpenChange, onSave, isUpdating }: EditProfileDialogProps) {
-    const [profileData, setProfileData] = useState<ProfileData>(initialData);
+export function EditProfile({ initialData, open, onOpenChange, onSave, isUpdating }: EditProfileProps) {
+    const [formData, setFormData] = useState<EditProfileData>(initialData);
 
     useEffect(() => {
-        setProfileData(initialData);
+        setFormData(initialData);
     }, [initialData, open]);
+
+    const set = (field: keyof EditProfileData, value: string) =>
+        setFormData(prev => ({ ...prev, [field]: value }));
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,24 +40,24 @@ export function EditProfileDialog({ initialData, open, onOpenChange, onSave, isU
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label htmlFor="profileName">Nama Lengkap</Label>
-                        <Input id="profileName" value={profileData.name} onChange={e => setProfileData({ ...profileData, name: e.target.value })} />
+                        <Label>Nama Lengkap</Label>
+                        <Input value={formData.name} onChange={e => set('name', e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="profileEmail">Email</Label>
-                        <Input id="profileEmail" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} />
+                        <Label>Email</Label>
+                        <Input type="email" value={formData.email} onChange={e => set('email', e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="profilePhone">No. Telepon</Label>
-                        <Input id="profilePhone" value={profileData.phone} onChange={e => setProfileData({ ...profileData, phone: e.target.value })} placeholder="0812..." />
+                        <Label>No. Telepon</Label>
+                        <Input value={formData.phone} onChange={e => set('phone', e.target.value)} placeholder="0812..." />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="profileAddress">Alamat</Label>
-                        <Textarea id="profileAddress" value={profileData.address} onChange={e => setProfileData({ ...profileData, address: e.target.value })} placeholder="Masukkan alamat lengkap..." />
+                        <Label>Alamat</Label>
+                        <Textarea value={formData.address} onChange={e => set('address', e.target.value)} placeholder="Alamat lengkap..." />
                     </div>
-                    <div className="flex justify-end pt-2 space-x-2">
+                    <div className="flex justify-end gap-2 pt-2">
                         <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-                        <Button onClick={() => onSave(profileData)} disabled={isUpdating}>
+                        <Button onClick={() => onSave(formData)} disabled={isUpdating}>
                             {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             Simpan Perubahan
                         </Button>

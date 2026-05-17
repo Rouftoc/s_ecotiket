@@ -68,5 +68,9 @@ export const chatAPI = {
     adminReply: async (sessionId: number, message: string) => {
         const response = await chatApi.post(`/sessions/${sessionId}/reply`, { message });
         return response.data;
+    },
+    closeSession: async (sessionId: number) => {
+        const response = await chatApi.patch(`/sessions/${sessionId}/close`);
+        return response.data;
     }
 };

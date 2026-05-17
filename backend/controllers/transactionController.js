@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { sendNotification, checkLowTickets } = require('../utils/notificationHelper');
 
 const calculateExpiredTickets = async (connection, userId) => {
     try {
@@ -54,7 +55,7 @@ exports.bottleExchange = async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { userQrCode, bottleType, bottleCount, location } = req.body;
+        const { userQrCode, bottleType, bottleCount, locationId } = req.body;
         const petugasId = req.user.id_user;
 
         if (!userQrCode || !bottleType || !bottleCount) {
@@ -125,8 +126,8 @@ exports.bottleExchange = async (req, res) => {
         );
 
         await connection.execute(
-            'INSERT INTO transactions (id_user, id_petugas, type, description, bottles_count, bottle_type, tickets_change, points_earned, status, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [user.id_user, petugasId, 'bottle_exchange', `Tukar ${bottleCount} botol ${bottleType} (expire ${expiryDate.toLocaleDateString('id-ID')})`, bottleCount, bottleType, ticketsEarned, pointsToAdd, 'completed', location]
+            'INSERT INTO transactions (id_user, id_petugas, type, description, bottles_count, bottle_type, tickets_change, points_earned, status, id_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [user.id_user, petugasId, 'bottle_exchange', `Tukar ${bottleCount} botol ${bottleType} (expire ${expiryDate.toLocaleDateString('id-ID')})`, bottleCount, bottleType, ticketsEarned, pointsToAdd, 'completed', locationId || null]
         );
 
         await connection.commit();
@@ -135,6 +136,14 @@ exports.bottleExchange = async (req, res) => {
             'SELECT id_user, name, tickets_balance, points FROM users WHERE id_user = ?',
             [user.id_user]
         );
+
+        // Notifikasi: tiket berhasil didapat
+        await sendNotification(null, {
+            id_user: user.id_user,
+            type: 'ticket',
+            title: 'Tiket Berhasil Didapat',
+            message: `Kamu mendapatkan ${ticketsEarned} tiket dari penukaran ${bottleCount} botol ${bottleType}. Tiket berlaku 30 hari.`
+        });
 
         res.json({
             message: 'Bottle exchange successful',
@@ -154,7 +163,7 @@ exports.bottleExchange = async (req, res) => {
 
 exports.ticketUsage = async (req, res) => {
     try {
-        const { userQrCode, ticketCount, location } = req.body;
+        const { userQrCode, ticketCount, locationId } = req.body;
         const petugasId = req.user.id_user;
 
         if (!userQrCode || !ticketCount) {
@@ -200,14 +209,14 @@ exports.ticketUsage = async (req, res) => {
             );
 
             const [transactionResult] = await connection.execute(
-                'INSERT INTO transactions (id_user, id_petugas, type, description, tickets_change, location, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO transactions (id_user, id_petugas, type, description, tickets_change, id_location, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [
                     user.id_user,
                     petugasId,
                     'ticket_usage',
                     `Menggunakan ${ticketCount} tiket untuk transportasi`,
                     -ticketCount,
-                    location,
+                    locationId || null,
                     'completed'
                 ]
             );
@@ -257,12 +266,16 @@ exports.ticketUsage = async (req, res) => {
                 [user.id_user]
             );
 
+            // Cek tiket hampir habis setelah digunakan
+            const newBalance = updatedUsers[0].tickets_balance;
+            await checkLowTickets(connection, user.id_user, newBalance).catch(() => {});
+
             res.json({
                 message: 'Ticket usage successful',
                 transaction: {
                     id: transactionResult.insertId,
                     ticketsUsed: ticketCount,
-                    location
+                    locationId
                 },
                 user: updatedUsers[0]
             });
@@ -302,10 +315,11 @@ exports.getUserTransactions = async (req, res) => {
         }
 
         const query = `
-      SELECT t.*, u.name as user_name, p.name as petugas_name 
+      SELECT t.*, u.name as user_name, p.name as petugas_name, l.name as location_name
       FROM transactions t 
       LEFT JOIN users u ON t.id_user = u.id_user 
       LEFT JOIN users p ON t.id_petugas = p.id_user 
+      LEFT JOIN locations l ON t.id_location = l.id_location
       WHERE ${filterColumn} = ? 
       ORDER BY t.created_at DESC
       LIMIT 100
@@ -344,10 +358,11 @@ exports.getAllTransactions = async (req, res) => {
     try {
         const { type, startDate, endDate, limit = 100 } = req.query;
 
-        let query = 'SELECT t.*, u.name as user_name, p.name as petugas_name ' +
+        let query = 'SELECT t.*, u.name as user_name, p.name as petugas_name, l.name as location_name ' +
             'FROM transactions t ' +
-            'JOIN users u ON t.id_user = u.id_user ' +
+            'LEFT JOIN users u ON t.id_user = u.id_user ' +
             'LEFT JOIN users p ON t.id_petugas = p.id_user ' +
+            'LEFT JOIN locations l ON t.id_location = l.id_location ' +
             'WHERE 1=1';
 
         const params = [];

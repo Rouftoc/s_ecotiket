@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageCircle, Send, Plus, Search, MoreVertical, Archive, Trash2, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, XCircle } from 'lucide-react';
 import { chatAPI } from '@/lib/api/chat';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 interface ChatSession {
     id_session: number;
@@ -144,6 +145,30 @@ export default function AdminChatManager() {
         }
     };
 
+    const handleCloseSession = async () => {
+        if (!selectedSessionId) return;
+        Swal.fire({
+            title: 'Tutup percakapan ini?',
+            text: 'Sesi chat akan ditutup dan tidak muncul lagi di daftar aktif.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Tutup',
+            cancelButtonText: 'Batal'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await chatAPI.closeSession(selectedSessionId);
+                    toast.success('Sesi chat berhasil ditutup');
+                    setSelectedSessionId(null);
+                    loadSessions();
+                } catch {
+                    toast.error('Gagal menutup sesi');
+                }
+            }
+        });
+    };
+
     const handleSendReply = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!replyText.trim() || !selectedSessionId) return;
@@ -236,6 +261,15 @@ export default function AdminChatManager() {
                                     <p className="text-xs text-gray-500">{selectedSession.user_email}</p>
                                 </div>
                             </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCloseSession}
+                                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-1.5"
+                            >
+                                <XCircle className="h-4 w-4" />
+                                <span className="hidden sm:inline">Tutup Chat</span>
+                            </Button>
                         </div>
 
                         <ScrollArea className="flex-1 p-4 bg-gray-50/30">

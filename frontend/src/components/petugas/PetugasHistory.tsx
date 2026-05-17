@@ -6,13 +6,7 @@ interface Transaction {
     id_transaction: number;
     qrCode: string;
     type: 'stand' | 'karnet';
-    bottles?: {
-        jumbo: number;
-        besar: number;
-        sedang: number;
-        kecil: number;
-        cup: number;
-    };
+    bottles?: Record<string, number>;
     tickets: number;
     timestamp: string;
     location: string;
@@ -57,7 +51,7 @@ export default function PetugasHistory({ transactions }: PetugasHistoryProps) {
                                         <p className="text-xs text-gray-500">{transaction.timestamp}</p>
                                         {transaction.bottles && (
                                             <p className="text-xs text-gray-500">
-                                                Botol: {transaction.bottles.jumbo + transaction.bottles.besar + transaction.bottles.sedang + transaction.bottles.kecil + transaction.bottles.cup}
+                                                Botol: {Object.values(transaction.bottles).reduce((a, b) => a + b, 0)}
                                             </p>
                                         )}
                                     </div>

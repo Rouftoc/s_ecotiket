@@ -1,26 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const locationController = require('../controllers/locationController');
+const { authenticateToken } = require('../middleware/auth');
 
-const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  const token = authHeader.substring(7);
+router.get('/', authenticateToken, locationController.getAllLocations);
 
-  req.user = { role: 'petugas' };
-  next();
-};
+router.get('/:id', authenticateToken, locationController.getLocationById);
 
-router.get('/', authenticate, locationController.getAllLocations);
+router.post('/', authenticateToken, locationController.createLocation);
 
-router.get('/:id', authenticate, locationController.getLocationById);
+router.put('/:id', authenticateToken, locationController.updateLocation);
 
-router.post('/', authenticate, locationController.createLocation);
-
-router.put('/:id', authenticate, locationController.updateLocation);
-
-router.delete('/:id', authenticate, locationController.deleteLocation);
+router.delete('/:id', authenticateToken, locationController.deleteLocation);
 
 module.exports = router;

@@ -8,6 +8,7 @@ import poster1 from '@/assets/poster1.png';
 import poster2 from '@/assets/poster2.png';
 import poster3 from '@/assets/poster3.png';
 import poster4 from '@/assets/poster4.png';
+import PublicNavbar from '@/components/common/PublicNavbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Recycle,
@@ -65,7 +66,7 @@ export default function Landing() {
           setSlides(heroImages); // Fallback to only hero images if no featured news
         }
 
-        setLatestNews(newsData.filter(n => !n.is_featured).slice(0, 3)); // Keep latest news logic
+        setLatestNews(newsData.slice(0, 3)); // Tampilkan 3 berita terbaru apapun statusnya
       } catch (err) {
         console.error("Failed to load content", err);
       } finally {
@@ -126,11 +127,12 @@ export default function Landing() {
   };
 
   useEffect(() => {
+    if (slides.length <= 1) return; // Tidak perlu auto-slide kalau cuma 1
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides.length]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -162,124 +164,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans overflow-x-hidden">
 
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-50 animate-fadeIn">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2 z-50">
-              <img src={logoEcoTiket} alt="Logo" className="h-10 md:h-12 w-auto" />
-            </div>
-
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#beranda" className="text-gray-600 hover:text-green-600 font-medium transition-colors">Beranda</a>
-              <a
-                href="/berita"
-                onClick={(e) => { e.preventDefault(); navigate('/berita'); }}
-                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
-              >
-                Berita
-              </a>
-              <a
-                href="/informasi/cara-kerja"
-                onClick={(e) => { e.preventDefault(); navigate('/informasi/cara-kerja'); }}
-                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
-              >
-                Cara Kerja
-              </a>
-              <a
-                href="/informasi/nilai-tukar"
-                onClick={(e) => { e.preventDefault(); navigate('/informasi/nilai-tukar'); }}
-                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
-              >
-                Nilai Tukar
-              </a>
-              <a
-                href="/informasi/keuntungan"
-                onClick={(e) => { e.preventDefault(); navigate('/informasi/keuntungan'); }}
-                className="text-gray-600 hover:text-green-600 font-medium transition-colors"
-              >
-                Keuntungan
-              </a>
-            </div>
-
-            <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <button
-                  onClick={handleProfileClick}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-full transition-colors border border-green-200"
-                >
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {user.name.charAt(0)}
-                  </div>
-                  <span className="font-medium text-sm max-w-[100px] truncate">{user.name}</span>
-                </button>
-              ) : (
-                <>
-                  <button onClick={() => navigate('/login')} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">Masuk</button>
-                  <button onClick={() => navigate('/register')} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">Daftar</button>
-                </>
-              )}
-            </div>
-
-            <div className="md:hidden z-50 flex items-center">
-              <button onClick={toggleMobileMenu} className="p-2 text-gray-600 hover:text-green-600 focus:outline-none">
-                {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className={`fixed inset-0 bg-white z-40 transform transition-transform duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ top: '64px' }}>
-          <div className="flex flex-col p-6 space-y-6 h-full overflow-y-auto pb-24">
-            <a href="#beranda" onClick={toggleMobileMenu} className="text-xl font-medium text-gray-800 border-b pb-2">Beranda</a>
-            <a
-              href="/berita"
-              onClick={(e) => { e.preventDefault(); navigate('/berita'); toggleMobileMenu(); }}
-              className="text-xl font-medium text-gray-800 border-b pb-2"
-            >
-              Berita
-            </a>
-            <a
-              href="/informasi/cara-kerja"
-              onClick={(e) => { e.preventDefault(); navigate('/informasi/cara-kerja'); toggleMobileMenu(); }}
-              className="text-xl font-medium text-gray-800 border-b pb-2"
-            >
-              Cara Kerja
-            </a>
-            <a
-              href="/informasi/nilai-tukar"
-              onClick={(e) => { e.preventDefault(); navigate('/informasi/nilai-tukar'); toggleMobileMenu(); }}
-              className="text-xl font-medium text-gray-800 border-b pb-2"
-            >
-              Nilai Tukar
-            </a>
-            <a
-              href="/informasi/keuntungan"
-              onClick={(e) => { e.preventDefault(); navigate('/informasi/keuntungan'); toggleMobileMenu(); }}
-              className="text-xl font-medium text-gray-800 border-b pb-2"
-            >
-              Keuntungan
-            </a>
-            <div className="flex flex-col space-y-3 pt-4">
-              {user ? (
-                <button
-                  onClick={() => { handleProfileClick(); toggleMobileMenu(); }}
-                  className="w-full px-4 py-3 bg-green-50 text-green-700 border border-green-200 rounded-lg text-lg font-medium flex items-center justify-center gap-3"
-                >
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {user.name.charAt(0)}
-                  </div>
-                  Dashboard Saya
-                </button>
-              ) : (
-                <>
-                  <button onClick={() => { navigate('/login'); toggleMobileMenu(); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-medium">Masuk</button>
-                  <button onClick={() => { navigate('/register'); toggleMobileMenu(); }} className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-lg font-medium">Daftar</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PublicNavbar />
 
       <section id="beranda" className="py-0 bg-white">
         <div className="w-full relative group">
@@ -323,25 +208,31 @@ export default function Landing() {
                 </div>
               </div>
             ))}
-            {/* Improved Navigation Buttons - Repositioned to Bottom Right to avoid text overlap */}
-            <div className="hidden md:flex absolute bottom-10 right-10 z-20 gap-4">
-              <button onClick={prevSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
-                <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
-              </button>
-              <button onClick={nextSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
-                <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-            <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-3 z-20">
-              {slides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`h-2.5 transition-all duration-500 rounded-full shadow-sm ${idx === currentSlide ? 'bg-green-500 w-10' : 'bg-white/40 w-2.5 hover:bg-white/80'}`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
+            {/* Tombol navigasi — hanya tampil kalau slides > 1 */}
+            {slides.length > 1 && (
+              <div className="hidden md:flex absolute bottom-10 right-10 z-20 gap-4">
+                <button onClick={prevSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
+                  <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
+                </button>
+                <button onClick={nextSlide} className="w-12 h-12 flex items-center justify-center border border-white/20 text-white bg-black/30 hover:bg-green-600 hover:border-green-600 transition-all duration-300 rounded-full backdrop-blur-md group">
+                  <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            )}
+
+            {/* Dots — hanya tampil kalau slides > 1 */}
+            {slides.length > 1 && (
+              <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-3 z-20">
+                {slides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-2.5 transition-all duration-500 rounded-full shadow-sm ${idx === currentSlide ? 'bg-green-500 w-10' : 'bg-white/40 w-2.5 hover:bg-white/80'}`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -540,7 +431,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-gray-200 mt-12 pt-8 text-center text-gray-500">
-            <p>© 2025 Dishub Kota Banjarmasin. All Rights Reserved.</p>
+            <p>© 2026 Dishub Kota Banjarmasin. All Rights Reserved.</p>
             <p className="mt-2">Follow Us</p>
           </div>
         </div>

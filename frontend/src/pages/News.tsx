@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, ChevronRight, Newspaper, Calendar, AlertCircle } from 'lucide-react';
+import { ChevronRight, Newspaper, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { newsAPI } from '@/lib/api/news';
 import { NewsItem } from '@/types/dashboard';
+import logoEcoTiket from '@/assets/logo_ecotiket.png';
+import PublicNavbar from '@/components/common/PublicNavbar';
 
 export default function News() {
     const navigate = useNavigate();
@@ -29,25 +31,9 @@ export default function News() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-            <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
-                <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-2 cursor-pointer hover:text-green-600 transition-colors" onClick={() => navigate('/')}>
-                        <Home className="h-5 w-5" />
-                        <span className="font-semibold">Eco-Tiket</span>
-                    </div>
-                    <Button onClick={() => navigate('/register')} className="bg-green-600 hover:bg-green-700 text-white font-bold">
-                        Daftar Sekarang
-                    </Button>
-                </div>
-            </nav>
+            <PublicNavbar />
 
             <main className="flex-grow container mx-auto px-4 py-8">
-                <div className="text-sm text-gray-500 mb-6 flex items-center gap-1">
-                    <span className="hover:text-green-600 cursor-pointer" onClick={() => navigate('/')}>Beranda</span>
-                    <ChevronRight className="h-4 w-4" />
-                    <span className="font-medium text-gray-900">Berita & Pengumuman</span>
-                </div>
-
                 <div className="max-w-6xl mx-auto">
                     <div className="mb-12">
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Semua Berita</h1>
@@ -128,6 +114,12 @@ export default function News() {
                     )}
                 </div>
             </main>
+
+            <footer className="bg-white border-t mt-12 py-8">
+                <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
+                    <p>© 2026 Dishub Kota Banjarmasin. All Rights Reserved.</p>
+                </div>
+            </footer>
         </div>
     );
 }

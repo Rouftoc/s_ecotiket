@@ -8,6 +8,9 @@ export * from './users';
 export * from './transactions';
 export * from './locations';
 export * from './news';
+export * from './shifts';
+export * from './notifications';
+export * from './bottleRates';
 
 // Helper for debugging, needs re-import of authAPI to avoid circular dependency issues if wrapped in debugAPI logic
 import { checkBackendHealth, getAuthToken } from './core';

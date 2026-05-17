@@ -37,7 +37,8 @@ export interface Transaction {
     bottle_type?: string;
     tickets_change: number;
     points_earned?: number;
-    location?: string;
+    id_location?: number;
+    location_name?: string;
     status: 'pending' | 'completed' | 'cancelled';
     created_at: string;
     user_name?: string;
@@ -48,13 +49,7 @@ export interface PetugasTransaction {
     id_transaction: number;
     qrCode: string;
     type: 'stand' | 'karnet';
-    bottles?: {
-        jumbo: number;
-        besar: number;
-        sedang: number;
-        kecil: number;
-        cup: number;
-    };
+    bottles?: Record<string, number>;
     tickets: number;
     timestamp: string;
     location: string;
@@ -64,11 +59,8 @@ export interface Location {
     name: string;
     type: 'terminal' | 'koridor' | 'stand';
     address?: string;
-    capacity?: number;
-    operating_hours?: string;
     status: 'active' | 'inactive' | 'maintenance';
-    description?: string;
-    coordinates?: string;
+    operating_hours?: string;
 }
 
 export interface BottleStats {

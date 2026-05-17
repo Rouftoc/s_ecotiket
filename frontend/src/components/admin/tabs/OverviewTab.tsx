@@ -1,18 +1,14 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Bus, Activity, MapPin, BarChart, Recycle, TrendingUp, Loader2, Clock } from 'lucide-react';
+import { Users, Bus, BarChart, Recycle, Clock, MapPin, Loader2 } from 'lucide-react';
 import BottleStatisticsChart from '@/components/admin/charts/BottleLineChart';
-import RolePieChart from '@/components/admin/charts/RolePieChart';
-import TicketCirculationChart from '@/components/admin/charts/TicketCirculationChart';
 import { DashboardStats, BottleStats, Transaction, UserRecord } from '@/types/dashboard';
-import TopUsersWidget from '@/components/admin/widgets/TopUsersWidget';
-import TopLocationsWidget from '@/components/admin/widgets/TopLocationsWidget';
 import { Badge } from '@/components/ui/badge';
+import { shiftsAPI, ShiftRecord } from '@/lib/api/shifts';
 
 interface OverviewTabProps {
     stats: DashboardStats;
-    growthRate: number;
-    growthLoading: boolean;
     bottleStats: BottleStats;
     transactions: Transaction[];
     users: UserRecord[];
@@ -20,6 +16,123 @@ interface OverviewTabProps {
     setStatsFilter: (val: string) => void;
     userFilter: string;
     setUserFilter: (val: string) => void;
+}
+
+const FILTER_OPTIONS = [
+    { value: 'all', label: 'Semua' },
+    { value: 'today', label: 'Hari Ini' },
+    { value: 'month', label: 'Bulan Ini' },
+    { value: 'year', label: 'Tahun Ini' },
+];
+
+function FilterSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+    return (
+        <Select value={value} onValueChange={onChange}>
+            <SelectTrigger className="w-[120px] h-8 text-xs bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Period" />
+            </SelectTrigger>
+            <SelectContent>
+                {FILTER_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+}
+
+function filterTransactionsByPeriod(transactions: Transaction[], filter: string): Transaction[] {
+    if (filter === 'all') return transactions;
+    const now = new Date();
+    return transactions.filter(t => {
+        const d = new Date(t.created_at);
+        if (filter === 'today') return d.toDateString() === now.toDateString();
+        if (filter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (filter === 'year') return d.getFullYear() === now.getFullYear();
+        return true;
+    });
+}
+
+function ActiveShiftsCard() {
+    const [shifts, setShifts] = useState<ShiftRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await shiftsAPI.getAllActiveShifts();
+                setShifts(res.shifts || []);
+            } catch {
+                setShifts([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+        // Refresh setiap 60 detik
+        const interval = setInterval(load, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const formatTime = (dateString: string) => {
+        try {
+            return new Date(dateString).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        } catch { return '-'; }
+    };
+
+    return (
+        <Card className="shadow-sm border-gray-200">
+            <CardHeader className="pb-4 border-b">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-bold flex items-center gap-2 text-gray-800">
+                        <Users className="h-4 w-4 text-green-500" />
+                        Petugas Sedang Bertugas
+                    </CardTitle>
+                    <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                        {loading ? '...' : `${shifts.length} aktif`}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {loading ? (
+                    <div className="flex justify-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                    </div>
+                ) : shifts.length === 0 ? (
+                    <p className="text-center text-gray-400 text-sm py-8">Tidak ada petugas yang sedang bertugas</p>
+                ) : (
+                    <div className="divide-y divide-gray-100">
+                        {shifts.map(shift => (
+                            <div key={shift.id_assignment} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold text-sm">
+                                        {shift.petugas_name?.charAt(0) || '?'}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">{shift.petugas_name}</p>
+                                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                                            <MapPin className="h-3 w-3" />
+                                            {shift.location_name}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-right">
+                                    <Badge variant={shift.mode === 'stand' ? 'default' : 'secondary'} className="text-xs">
+                                        {shift.mode === 'stand' ? 'Stand' : 'Karnet'}
+                                    </Badge>
+                                    <div>
+                                        <p className="text-xs text-gray-500 flex items-center gap-1 justify-end">
+                                            <Clock className="h-3 w-3" />
+                                            Sejak {formatTime(shift.started_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function RecentActivityCard({ transactions }: { transactions: Transaction[] }) {
@@ -31,24 +144,17 @@ function RecentActivityCard({ transactions }: { transactions: Transaction[] }) {
         } catch { return 'Invalid Date'; }
     };
 
-    const getStatusBadge = (tickets_change: number) => {
-        if (tickets_change > 0) return 'text-green-600 bg-green-50 border-green-200';
-        return 'text-red-600 bg-red-50 border-red-200';
-    };
-
     const recentTransactions = transactions.slice(0, 10);
 
     return (
         <Card className="shadow-sm border-gray-200">
             <CardHeader className="pb-4 border-b">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-bold flex items-center gap-2 text-gray-800">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        Aktivitas Terakhir
-                    </CardTitle>
-                </div>
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-gray-800">
+                    <Clock className="h-4 w-4 text-blue-500" />
+                    Aktivitas Terakhir
+                </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 p-0">
+            <CardContent className="p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50/50">
@@ -56,16 +162,14 @@ function RecentActivityCard({ transactions }: { transactions: Transaction[] }) {
                                 <th className="text-left py-3 px-4 font-semibold text-gray-500 w-[80px]">ID</th>
                                 <th className="text-left py-3 px-4 font-semibold text-gray-500">Aktivitas</th>
                                 <th className="text-left py-3 px-4 font-semibold text-gray-500">Pengguna</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-500">Nilai</th>
+                                <th className="text-right py-3 px-4 font-semibold text-gray-500">Tiket</th>
                                 <th className="text-right py-3 px-4 font-semibold text-gray-500">Waktu</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {recentTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-gray-400">
-                                        Belum ada aktivitas
-                                    </td>
+                                    <td colSpan={5} className="text-center py-8 text-gray-400">Belum ada aktivitas</td>
                                 </tr>
                             ) : (
                                 recentTransactions.map((tx) => (
@@ -80,19 +184,14 @@ function RecentActivityCard({ transactions }: { transactions: Transaction[] }) {
                                                         <Bus className={`h-4 w-4 ${tx.tickets_change > 0 ? 'text-green-600' : 'text-red-600'}`} />
                                                     )}
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-800 text-sm truncate max-w-[200px]">{tx.description}</p>
-                                                    <Badge variant="outline" className={`mt-1 text-[10px] px-1.5 font-normal ${getStatusBadge(tx.tickets_change)}`}>
-                                                        {tx.tickets_change > 0 ? 'Masuk' : 'Keluar'}
-                                                    </Badge>
-                                                </div>
+                                                <p className="font-medium text-gray-800 text-sm truncate max-w-[200px]">{tx.description}</p>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-gray-700">{tx.user_name}</td>
                                         <td className="py-3 px-4 text-right">
-                                            <p className={`font-bold text-sm ${tx.tickets_change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            <span className={`font-bold text-sm ${tx.tickets_change > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                 {tx.tickets_change > 0 ? '+' : ''}{Math.abs(tx.tickets_change)}
-                                            </p>
+                                            </span>
                                         </td>
                                         <td className="py-3 px-4 text-right text-gray-500 text-xs text-nowrap">{formatDateTime(tx.created_at)}</td>
                                     </tr>
@@ -108,8 +207,6 @@ function RecentActivityCard({ transactions }: { transactions: Transaction[] }) {
 
 export function OverviewTab({
     stats,
-    growthRate,
-    growthLoading,
     bottleStats,
     transactions,
     users,
@@ -118,6 +215,8 @@ export function OverviewTab({
     userFilter,
     setUserFilter
 }: OverviewTabProps) {
+    const [bottleFilter, setBottleFilter] = useState('all');
+    const bottleTransactions = filterTransactionsByPeriod(transactions, bottleFilter);
 
     return (
         <div className="space-y-6 pb-12">
@@ -131,9 +230,10 @@ export function OverviewTab({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900">{stats.totalUsers}</div>
-                        <p className="text-xs text-gray-500 mt-1">{stats.totalPenumpang} penumpang aktif</p>
+                        <p className="text-xs text-gray-500 mt-1">{stats.totalPenumpang} penumpang · {stats.totalPetugas} petugas</p>
                     </CardContent>
                 </Card>
+
                 <Card className="border-l-4 border-l-green-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600">Total Tiket</CardTitle>
@@ -144,6 +244,7 @@ export function OverviewTab({
                         <p className="text-xs text-gray-500 mt-1">Tiket dalam sirkulasi</p>
                     </CardContent>
                 </Card>
+
                 <Card className="border-l-4 border-l-purple-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600">Total Transaksi</CardTitle>
@@ -154,118 +255,42 @@ export function OverviewTab({
                         <p className="text-xs text-gray-500 mt-1">Selesai diproses</p>
                     </CardContent>
                 </Card>
+
                 <Card className="border-l-4 border-l-orange-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Pertumbuhan</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-orange-500 opacity-70" />
+                        <CardTitle className="text-sm font-medium text-gray-600">Total Botol</CardTitle>
+                        <Recycle className="h-4 w-4 text-orange-500 opacity-70" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900">
-                            {growthLoading ? (
-                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                            ) : (
-                                <span>{growthRate >= 0 ? '+' : ''}{growthRate}%</span>
-                            )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">vs Bulan Lalu</p>
+                        <div className="text-2xl font-bold text-gray-900">{bottleStats.total.toLocaleString()}</div>
+                        <p className="text-xs text-gray-500 mt-1">Botol terkumpul</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Row 2: Charts & Eco Impact */}
-            <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <Card className="h-full shadow-sm">
-                        <CardHeader className="border-b pb-4">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base font-bold text-gray-800">Statistik Botol</CardTitle>
-                                <Select value={statsFilter} onValueChange={setStatsFilter}>
-                                    <SelectTrigger className="w-[120px] h-8 text-xs bg-gray-50 border-gray-200">
-                                        <SelectValue placeholder="Period" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua</SelectItem>
-                                        <SelectItem value="today">Hari Ini</SelectItem>
-                                        <SelectItem value="month">Bulan Ini</SelectItem>
-                                        <SelectItem value="year">Tahun Ini</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <BottleStatisticsChart
-                                statsFilter={statsFilter}
-                                bottleStats={bottleStats}
-                                transactions={transactions}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="space-y-6 flex flex-col h-full">
-                    <Card className="h-full shadow-sm flex flex-col">
-                        <CardHeader className="border-b pb-4">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base font-bold text-gray-800 flex items-center gap-2">
-                                    <Users className="h-5 w-5 text-yellow-500" />
-                                    Top 5 Penumpang
-                                </CardTitle>
-                                <Select value={statsFilter} onValueChange={setStatsFilter}>
-                                    <SelectTrigger className="w-[120px] h-8 text-xs bg-gray-50 border-gray-200">
-                                        <SelectValue placeholder="Period" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua</SelectItem>
-                                        <SelectItem value="today">Hari Ini</SelectItem>
-                                        <SelectItem value="month">Bulan Ini</SelectItem>
-                                        <SelectItem value="year">Tahun Ini</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-6 flex-1 overflow-auto">
-                            <TopUsersWidget users={users} />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+            {/* Row 2: Grafik Statistik Botol (full width) */}
+            <Card className="shadow-sm">
+                <CardHeader className="border-b pb-4">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-base font-bold text-gray-800">Statistik Botol</CardTitle>
+                        <FilterSelect value={bottleFilter} onChange={setBottleFilter} />
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <BottleStatisticsChart
+                        statsFilter={bottleFilter}
+                        bottleStats={bottleStats}
+                        transactions={bottleTransactions}
+                    />
+                </CardContent>
+            </Card>
 
-            {/* Row 3: Detail Widgets */}
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="h-full">
-                    <Card className="h-full shadow-sm flex flex-col">
-                        <CardHeader className="border-b pb-4">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base font-bold text-gray-800 flex items-center gap-2">
-                                    <Bus className="h-5 w-5 text-purple-500" />
-                                    Sirkulasi Tiket
-                                </CardTitle>
-                                <Select value={statsFilter} onValueChange={setStatsFilter}>
-                                    <SelectTrigger className="w-[120px] h-8 text-xs bg-gray-50 border-gray-200">
-                                        <SelectValue placeholder="Period" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua</SelectItem>
-                                        <SelectItem value="today">Hari Ini</SelectItem>
-                                        <SelectItem value="month">Bulan Ini</SelectItem>
-                                        <SelectItem value="year">Tahun Ini</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 min-h-[300px] pt-6">
-                            <TicketCirculationChart transactions={transactions} />
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="h-full">
-                    <TopLocationsWidget transactions={transactions} />
-                </div>
-            </div>
+            {/* Row 3: Petugas Sedang Bertugas */}
+            <ActiveShiftsCard />
 
-            {/* Row 4: Recent Activity */}
-            <div>
-                <RecentActivityCard transactions={transactions} />
-            </div>
+            {/* Row 4: Aktivitas Terakhir */}
+            <RecentActivityCard transactions={transactions} />
+
         </div>
     );
 }

@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { User, Edit, Save, X, Phone, MapPin, Mail, Shield } from 'lucide-react';
-import { usersAPI } from '@/lib/api'; // Correct import
+import { usersAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { CurrentUser } from '@/types/dashboard';
+import ChangePasswordForm from '@/components/common/ChangePasswordForm';
 
 interface AdminProfileProps {
     user: CurrentUser;
@@ -46,7 +47,8 @@ export default function AdminProfile({ user, setUser, updateLocalStorage }: Admi
     };
 
     return (
-        <Card>
+        <div className="space-y-6">
+            <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -162,5 +164,7 @@ export default function AdminProfile({ user, setUser, updateLocalStorage }: Admi
                 )}
             </CardContent>
         </Card>
+            <ChangePasswordForm />
+        </div>
     );
 }
